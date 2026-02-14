@@ -51,6 +51,7 @@ struct CreateImpressionFlowView: View {
                             onAnswerSaved: { answerText in
                                 coordinator.completePromptAnswer(
                                     promptId: prompt.id,
+                                    question: prompt.question,
                                     answerText: answerText
                                 )
                             },

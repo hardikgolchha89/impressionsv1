@@ -22,11 +22,13 @@ struct Prompt: Identifiable, Equatable {
 
 struct PromptAnswer {
     let promptId: UUID
+    let question: String
     let answerText: String
     let timestamp: Date
-    
-    init(promptId: UUID, answerText: String, timestamp: Date = Date()) {
+
+    init(promptId: UUID, question: String, answerText: String, timestamp: Date = Date()) {
         self.promptId = promptId
+        self.question = question
         self.answerText = answerText
         self.timestamp = timestamp
     }

@@ -104,14 +104,15 @@ class CreateImpressionCoordinator: ObservableObject {
         advance(to: .promptAnswer(prompt: prompt))
     }
     
-    func completePromptAnswer(promptId: UUID, answerText: String) {
+    func completePromptAnswer(promptId: UUID, question: String, answerText: String) {
         let answer = PromptAnswer(
             promptId: promptId,
+            question: question,
             answerText: answerText,
             timestamp: Date()
         )
         data.answeredPrompts[promptId] = answer
-        
+
         // Go back to prompt selection
         advance(to: .promptSelection)
     }
