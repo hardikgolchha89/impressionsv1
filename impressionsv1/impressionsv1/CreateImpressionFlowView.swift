@@ -6,10 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct CreateImpressionFlowView: View {
     @StateObject private var coordinator = CreateImpressionCoordinator()
-    
+    @Environment(UserManager.self) private var userManager
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -70,6 +74,15 @@ struct CreateImpressionFlowView: View {
                 }
             }
             .navigationBarHidden(true)
+            .onAppear {
+                // Inject dependencies into coordinator
+                coordinator.userManager = userManager
+                coordinator.modelContext = modelContext
+                coordinator.onPublishComplete = {
+                    // Dismiss the create flow sheet
+                    dismiss()
+                }
+            }
         }
     }
 }

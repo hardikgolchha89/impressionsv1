@@ -36,9 +36,16 @@ struct impressionsv1App: App {
         }
     }()
 
+    @State private var userManager = UserManager()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(userManager)
+                .onAppear {
+                    // Load or create user on app launch
+                    userManager.loadOrCreateUser(context: sharedModelContainer.mainContext)
+                }
         }
         .modelContainer(sharedModelContainer)
     }

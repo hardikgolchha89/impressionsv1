@@ -43,7 +43,12 @@ class CreateImpressionCoordinator: ObservableObject {
     @Published var currentStep: CreateFlowStep = .placeSelection
     @Published var data: ImpressionData = ImpressionData()
     @Published var navigationPath: [CreateFlowStep] = []
-    
+
+    // Dependencies (injected)
+    var userManager: UserManager?
+    var modelContext: ModelContext?
+    var onPublishComplete: (() -> Void)?
+
     // MARK: - Navigation Methods
     
     func start() {
@@ -141,15 +146,35 @@ class CreateImpressionCoordinator: ObservableObject {
     }
     
     func publish() {
-        // Save impression (mock for now)
-        print("Publishing impression:")
-        print("- Place: \(data.place?.name ?? "N/A")")
-        print("- Title: \(data.title)")
-        print("- Prompts answered: \(data.answeredPrompts.count)")
-        
-        // TODO: Navigate to feed or show success
-        // For now, just reset
-        start()
+        guard let userManager = userManager,
+              let currentUser = userManager.currentUser,
+              let context = modelContext else {
+            print("❌ Error: UserManager or ModelContext not available")
+            return
+        }
+
+        // Build impression using ImpressionBuilder
+        let impression = ImpressionBuilder.buildImpression(
+            from: data,
+            author: currentUser
+        )
+
+        // Insert into SwiftData
+        context.insert(impression)
+
+        do {
+            try context.save()
+            print("✅ Successfully published impression: \(data.title)")
+            print("   - Place: \(data.place?.name ?? "N/A")")
+            print("   - Prompts answered: \(data.answeredPrompts.count)")
+            print("   - Photos: \(data.photos.count)")
+
+            // Reset flow and notify completion
+            start()
+            onPublishComplete?()
+        } catch {
+            print("❌ Failed to save impression: \(error)")
+        }
     }
     
     // MARK: - Private Helpers
