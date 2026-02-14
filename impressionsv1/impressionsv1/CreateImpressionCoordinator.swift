@@ -166,8 +166,32 @@ class CreateImpressionCoordinator: ObservableObject {
             author: currentUser
         )
 
-        // Insert into SwiftData
+        // Insert into SwiftData - must insert impression AND all child widgets
         context.insert(impression)
+
+        // Insert all photo widgets
+        impression.photoWidgets?.forEach { context.insert($0) }
+
+        // Insert all quote widgets
+        impression.quoteWidgets?.forEach { context.insert($0) }
+
+        // Insert all info widgets
+        impression.infoWidgets?.forEach { context.insert($0) }
+
+        // Insert all map widgets
+        impression.mapWidgets?.forEach { context.insert($0) }
+
+        // Insert food grid widgets and their items
+        impression.foodGridWidgets?.forEach { foodGrid in
+            context.insert(foodGrid)
+            foodGrid.items?.forEach { context.insert($0) }
+        }
+
+        // Insert order list widgets and their items
+        impression.orderListWidgets?.forEach { orderList in
+            context.insert(orderList)
+            orderList.allItems?.forEach { context.insert($0) }
+        }
 
         do {
             try context.save()
