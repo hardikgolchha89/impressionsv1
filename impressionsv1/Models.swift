@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import SwiftData
+import Foundation
 
 // MARK: - Impression Card Color (avoids conflict with DesignSystem.CardColor)
 enum ImpressionCardColor {
@@ -93,5 +95,381 @@ struct Impression: Identifiable {
         self.cardColor = cardColor
         self.previewWidgets = previewWidgets
         self.allWidgets = allWidgets
+    }
+}
+
+// MARK: - SwiftData Models
+
+/// Author model for SwiftData persistence
+@Model
+final class AuthorModel {
+    @Attribute(.unique) var id: String
+    var name: String
+    var profileImageUrl: String?
+
+    @Relationship(deleteRule: .cascade, inverse: \ImpressionModel.author)
+    var impressions: [ImpressionModel]?
+
+    init(id: String = UUID().uuidString, name: String, profileImageUrl: String? = nil) {
+        self.id = id
+        self.name = name
+        self.profileImageUrl = profileImageUrl
+        self.impressions = []
+    }
+
+    /// Convert to struct for use in views
+    var asStruct: Author {
+        Author(id: id, name: name, profileImageUrl: profileImageUrl)
+    }
+}
+
+/// Photo widget data model
+@Model
+final class PhotoDataModel {
+    @Attribute(.unique) var id: String
+    var imageUrl: String?
+    var caption: String?
+    var sortOrder: Int
+
+    @Relationship(inverse: \ImpressionModel.photoWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, imageUrl: String? = nil, caption: String? = nil, sortOrder: Int = 0) {
+        self.id = id
+        self.imageUrl = imageUrl
+        self.caption = caption
+        self.sortOrder = sortOrder
+    }
+}
+
+/// Quote widget data model
+@Model
+final class QuoteDataModel {
+    @Attribute(.unique) var id: String
+    var prompt: String
+    var answer: String
+    var sortOrder: Int
+
+    @Relationship(inverse: \ImpressionModel.quoteWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, prompt: String, answer: String, sortOrder: Int = 0) {
+        self.id = id
+        self.prompt = prompt
+        self.answer = answer
+        self.sortOrder = sortOrder
+    }
+}
+
+/// Info widget data model
+@Model
+final class InfoDataModel {
+    @Attribute(.unique) var id: String
+    var title: String?
+    var content: String
+    var icon: String?
+    var sortOrder: Int
+
+    @Relationship(inverse: \ImpressionModel.infoWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, title: String? = nil, content: String, icon: String? = nil, sortOrder: Int = 0) {
+        self.id = id
+        self.title = title
+        self.content = content
+        self.icon = icon
+        self.sortOrder = sortOrder
+    }
+}
+
+/// Map widget data model
+@Model
+final class MapDataModel {
+    @Attribute(.unique) var id: String
+    var placeName: String
+    var address: String
+    var latitude: Double?
+    var longitude: Double?
+    var sortOrder: Int
+
+    @Relationship(inverse: \ImpressionModel.mapWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, placeName: String, address: String, latitude: Double? = nil, longitude: Double? = nil, sortOrder: Int = 0) {
+        self.id = id
+        self.placeName = placeName
+        self.address = address
+        self.latitude = latitude
+        self.longitude = longitude
+        self.sortOrder = sortOrder
+    }
+}
+
+/// Food item model for FoodGrid widget
+@Model
+final class FoodItemModel {
+    @Attribute(.unique) var id: String
+    var name: String
+    var imageName: String?
+
+    @Relationship(inverse: \FoodGridDataModel.items)
+    var foodGrid: FoodGridDataModel?
+
+    init(id: String = UUID().uuidString, name: String, imageName: String? = nil) {
+        self.id = id
+        self.name = name
+        self.imageName = imageName
+    }
+}
+
+/// Food grid widget data model
+@Model
+final class FoodGridDataModel {
+    @Attribute(.unique) var id: String
+    var sortOrder: Int
+
+    @Relationship(deleteRule: .cascade)
+    var items: [FoodItemModel]?
+
+    @Relationship(inverse: \ImpressionModel.foodGridWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, items: [FoodItemModel] = [], sortOrder: Int = 0) {
+        self.id = id
+        self.items = items
+        self.sortOrder = sortOrder
+    }
+}
+
+/// Order item model for OrderList widget
+@Model
+final class OrderItemModel {
+    @Attribute(.unique) var id: String
+    var name: String
+    var column: String // "left" or "right"
+
+    @Relationship(inverse: \OrderListDataModel.allItems)
+    var orderList: OrderListDataModel?
+
+    init(id: String = UUID().uuidString, name: String, column: String = "left") {
+        self.id = id
+        self.name = name
+        self.column = column
+    }
+}
+
+/// Order list widget data model
+@Model
+final class OrderListDataModel {
+    @Attribute(.unique) var id: String
+    var title: String
+    var sortOrder: Int
+
+    @Relationship(deleteRule: .cascade)
+    var allItems: [OrderItemModel]?
+
+    @Relationship(inverse: \ImpressionModel.orderListWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, title: String, allItems: [OrderItemModel] = [], sortOrder: Int = 0) {
+        self.id = id
+        self.title = title
+        self.allItems = allItems
+        self.sortOrder = sortOrder
+    }
+
+    /// Get items for left column
+    var leftColumnItems: [OrderItemModel] {
+        allItems?.filter { $0.column == "left" } ?? []
+    }
+
+    /// Get items for right column
+    var rightColumnItems: [OrderItemModel] {
+        allItems?.filter { $0.column == "right" } ?? []
+    }
+}
+
+/// Pairing widget data model
+@Model
+final class PairingDataModel {
+    @Attribute(.unique) var id: String
+    var placeName: String
+    var location: String
+    var imageUrl: String?
+    var sortOrder: Int
+
+    @Relationship(inverse: \ImpressionModel.pairingWidgets)
+    var impression: ImpressionModel?
+
+    init(id: String = UUID().uuidString, placeName: String, location: String, imageUrl: String? = nil, sortOrder: Int = 0) {
+        self.id = id
+        self.placeName = placeName
+        self.location = location
+        self.imageUrl = imageUrl
+        self.sortOrder = sortOrder
+    }
+}
+
+/// Impression model for SwiftData persistence
+@Model
+final class ImpressionModel {
+    @Attribute(.unique) var id: String
+    var createdAt: Date
+    var title: String
+    var placeName: String
+    var companions: String
+    var occasion: String
+    var priceRange: String?
+    var cardColorRawValue: String // "pink" or "blue"
+
+    @Relationship(deleteRule: .nullify)
+    var author: AuthorModel?
+
+    @Relationship(deleteRule: .cascade)
+    var photoWidgets: [PhotoDataModel]?
+
+    @Relationship(deleteRule: .cascade)
+    var quoteWidgets: [QuoteDataModel]?
+
+    @Relationship(deleteRule: .cascade)
+    var infoWidgets: [InfoDataModel]?
+
+    @Relationship(deleteRule: .cascade)
+    var mapWidgets: [MapDataModel]?
+
+    @Relationship(deleteRule: .cascade)
+    var foodGridWidgets: [FoodGridDataModel]?
+
+    @Relationship(deleteRule: .cascade)
+    var orderListWidgets: [OrderListDataModel]?
+
+    @Relationship(deleteRule: .cascade)
+    var pairingWidgets: [PairingDataModel]?
+
+    init(
+        id: String = UUID().uuidString,
+        createdAt: Date = Date(),
+        title: String,
+        placeName: String,
+        companions: String,
+        occasion: String,
+        priceRange: String? = nil,
+        cardColorRawValue: String = "pink",
+        author: AuthorModel? = nil
+    ) {
+        self.id = id
+        self.createdAt = createdAt
+        self.title = title
+        self.placeName = placeName
+        self.companions = companions
+        self.occasion = occasion
+        self.priceRange = priceRange
+        self.cardColorRawValue = cardColorRawValue
+        self.author = author
+        self.photoWidgets = []
+        self.quoteWidgets = []
+        self.infoWidgets = []
+        self.mapWidgets = []
+        self.foodGridWidgets = []
+        self.orderListWidgets = []
+        self.pairingWidgets = []
+    }
+
+    /// Computed property for card color
+    var cardColor: ImpressionCardColor {
+        cardColorRawValue == "blue" ? .blue : .pink
+    }
+
+    /// Computed time ago string
+    var timeAgo: String {
+        let now = Date()
+        let interval = now.timeIntervalSince(createdAt)
+
+        let days = Int(interval / 86400)
+        if days > 0 {
+            return "\(days)d"
+        }
+
+        let hours = Int(interval / 3600)
+        if hours > 0 {
+            return "\(hours)h"
+        }
+
+        let minutes = Int(interval / 60)
+        if minutes > 0 {
+            return "\(minutes)m"
+        }
+
+        return "now"
+    }
+
+    /// Get all widgets sorted by sortOrder for preview (first 2)
+    var previewWidgets: [Widget] {
+        Array(allWidgets.prefix(2))
+    }
+
+    /// Get all widgets sorted by sortOrder
+    var allWidgets: [Widget] {
+        var widgets: [Widget] = []
+
+        // Add all widgets with their sort order
+        photoWidgets?.forEach { model in
+            let data = PhotoData(id: model.id, imageUrl: model.imageUrl, caption: model.caption)
+            widgets.append(Widget(id: model.id, type: .photo(data)))
+        }
+
+        quoteWidgets?.forEach { model in
+            let data = QuoteData(id: model.id, prompt: model.prompt, answer: model.answer)
+            widgets.append(Widget(id: model.id, type: .quote(data)))
+        }
+
+        infoWidgets?.forEach { model in
+            let data = InfoData(id: model.id, title: model.title, content: model.content, icon: model.icon)
+            widgets.append(Widget(id: model.id, type: .info(data)))
+        }
+
+        mapWidgets?.forEach { model in
+            let data = MapData(id: model.id, placeName: model.placeName, address: model.address, latitude: model.latitude, longitude: model.longitude)
+            widgets.append(Widget(id: model.id, type: .map(data)))
+        }
+
+        foodGridWidgets?.forEach { model in
+            let items = model.items?.map { FoodItem(id: $0.id, name: $0.name, imageName: $0.imageName) } ?? []
+            let data = FoodGridData(id: model.id, items: items)
+            widgets.append(Widget(id: model.id, type: .foodGrid(data)))
+        }
+
+        orderListWidgets?.forEach { model in
+            let leftItems = model.leftColumnItems.map { OrderItem(id: $0.id, name: $0.name) }
+            let rightItems = model.rightColumnItems.map { OrderItem(id: $0.id, name: $0.name) }
+            let data = OrderListData(id: model.id, title: model.title, leftColumnItems: leftItems, rightColumnItems: rightItems)
+            widgets.append(Widget(id: model.id, type: .orderList(data)))
+        }
+
+        pairingWidgets?.forEach { model in
+            let data = PairingWidgetData(id: model.id, placeName: model.placeName, location: model.location, imageUrl: model.imageUrl)
+            widgets.append(Widget(id: model.id, type: .pairing(data)))
+        }
+
+        // Sort by the sort order stored in each widget model
+        // For now, return in the order they were added
+        return widgets
+    }
+
+    /// Convert to struct for use in views
+    var asStruct: Impression {
+        Impression(
+            id: id,
+            author: author?.asStruct ?? Author(id: "unknown", name: "Unknown"),
+            timeAgo: timeAgo,
+            title: title,
+            placeName: placeName,
+            companions: companions,
+            occasion: occasion,
+            priceRange: priceRange,
+            cardColor: cardColor,
+            previewWidgets: previewWidgets,
+            allWidgets: allWidgets
+        )
     }
 }

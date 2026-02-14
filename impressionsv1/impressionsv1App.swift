@@ -12,7 +12,20 @@ import SwiftData
 struct impressionsv1App: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            // Core models
+            AuthorModel.self,
+            ImpressionModel.self,
+
+            // Widget models
+            PhotoDataModel.self,
+            QuoteDataModel.self,
+            InfoDataModel.self,
+            MapDataModel.self,
+            FoodGridDataModel.self,
+            FoodItemModel.self,
+            OrderListDataModel.self,
+            OrderItemModel.self,
+            PairingDataModel.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
