@@ -147,10 +147,16 @@ class CreateImpressionCoordinator: ObservableObject {
     }
     
     func publish() {
+        print("🔵 publish() called")
+        print("   - userManager: \(userManager != nil ? "✅" : "❌")")
+        print("   - currentUser: \(userManager?.currentUser != nil ? "✅" : "❌")")
+        print("   - modelContext: \(modelContext != nil ? "✅" : "❌")")
+
         guard let userManager = userManager,
               let currentUser = userManager.currentUser,
               let context = modelContext else {
             print("❌ Error: UserManager or ModelContext not available")
+            print("   - Missing: userManager=\(userManager == nil), currentUser=\(userManager?.currentUser == nil), context=\(modelContext == nil)")
             return
         }
 
