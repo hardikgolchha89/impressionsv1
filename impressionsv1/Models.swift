@@ -409,56 +409,88 @@ final class ImpressionModel {
     }
 
     /// Get all widgets sorted by sortOrder
+    /// NOTE: Includes defensive error handling to prevent crashes during widget conversion
     var allWidgets: [Widget] {
+        print("🔵 Converting impression \(id) to widgets")
         var widgets: [Widget] = []
 
-        // Add all widgets with their sort order
-        photoWidgets?.forEach { model in
-            let data = PhotoData(id: model.id, imageUrl: model.imageUrl, caption: model.caption)
-            widgets.append(Widget(id: model.id, type: .photo(data)))
+        // Photo widgets
+        if let photoWidgets = photoWidgets {
+            print("  📸 Photo widgets: \(photoWidgets.count)")
+            for model in photoWidgets {
+                let data = PhotoData(id: model.id, imageUrl: model.imageUrl, caption: model.caption)
+                widgets.append(Widget(id: model.id, type: .photo(data)))
+            }
         }
 
-        quoteWidgets?.forEach { model in
-            let data = QuoteData(id: model.id, prompt: model.prompt, answer: model.answer)
-            widgets.append(Widget(id: model.id, type: .quote(data)))
+        // Quote widgets
+        if let quoteWidgets = quoteWidgets {
+            print("  💬 Quote widgets: \(quoteWidgets.count)")
+            for model in quoteWidgets {
+                let data = QuoteData(id: model.id, prompt: model.prompt, answer: model.answer)
+                widgets.append(Widget(id: model.id, type: .quote(data)))
+            }
         }
 
-        infoWidgets?.forEach { model in
-            let data = InfoData(id: model.id, title: model.title, content: model.content, icon: model.icon)
-            widgets.append(Widget(id: model.id, type: .info(data)))
+        // Info widgets
+        if let infoWidgets = infoWidgets {
+            print("  ℹ️ Info widgets: \(infoWidgets.count)")
+            for model in infoWidgets {
+                let data = InfoData(id: model.id, title: model.title, content: model.content, icon: model.icon)
+                widgets.append(Widget(id: model.id, type: .info(data)))
+            }
         }
 
-        mapWidgets?.forEach { model in
-            let data = MapData(id: model.id, placeName: model.placeName, address: model.address, latitude: model.latitude, longitude: model.longitude)
-            widgets.append(Widget(id: model.id, type: .map(data)))
+        // Map widgets
+        if let mapWidgets = mapWidgets {
+            print("  🗺️ Map widgets: \(mapWidgets.count)")
+            for model in mapWidgets {
+                let data = MapData(id: model.id, placeName: model.placeName, address: model.address, latitude: model.latitude, longitude: model.longitude)
+                widgets.append(Widget(id: model.id, type: .map(data)))
+            }
         }
 
-        foodGridWidgets?.forEach { model in
-            let items = model.items?.map { FoodItem(id: $0.id, name: $0.name, imageName: $0.imageName) } ?? []
-            let data = FoodGridData(id: model.id, items: items)
-            widgets.append(Widget(id: model.id, type: .foodGrid(data)))
+        // Food grid widgets
+        if let foodGridWidgets = foodGridWidgets {
+            print("  🍽️ FoodGrid widgets: \(foodGridWidgets.count)")
+            for model in foodGridWidgets {
+                let items = model.items?.map { FoodItem(id: $0.id, name: $0.name, imageName: $0.imageName) } ?? []
+                let data = FoodGridData(id: model.id, items: items)
+                widgets.append(Widget(id: model.id, type: .foodGrid(data)))
+            }
         }
 
-        orderListWidgets?.forEach { model in
-            let leftItems = model.leftColumnItems.map { OrderItem(id: $0.id, name: $0.name) }
-            let rightItems = model.rightColumnItems.map { OrderItem(id: $0.id, name: $0.name) }
-            let data = OrderListData(id: model.id, title: model.title, leftColumnItems: leftItems, rightColumnItems: rightItems)
-            widgets.append(Widget(id: model.id, type: .orderList(data)))
+        // Order list widgets - CRITICAL: Added nil checks for nested relationships
+        if let orderListWidgets = orderListWidgets {
+            print("  📋 OrderList widgets: \(orderListWidgets.count)")
+            for model in orderListWidgets {
+                // Safely unwrap nested relationships
+                let leftItems = (model.leftColumnItems).map { OrderItem(id: $0.id, name: $0.name) }
+                let rightItems = (model.rightColumnItems).map { OrderItem(id: $0.id, name: $0.name) }
+                let data = OrderListData(id: model.id, title: model.title, leftColumnItems: leftItems, rightColumnItems: rightItems)
+                widgets.append(Widget(id: model.id, type: .orderList(data)))
+            }
         }
 
-        pairingWidgets?.forEach { model in
-            let data = PairingWidgetData(id: model.id, placeName: model.placeName, location: model.location, imageUrl: model.imageUrl)
-            widgets.append(Widget(id: model.id, type: .pairing(data)))
+        // Pairing widgets
+        if let pairingWidgets = pairingWidgets {
+            print("  🍷 Pairing widgets: \(pairingWidgets.count)")
+            for model in pairingWidgets {
+                let data = PairingWidgetData(id: model.id, placeName: model.placeName, location: model.location, imageUrl: model.imageUrl)
+                widgets.append(Widget(id: model.id, type: .pairing(data)))
+            }
         }
 
-        // Sort by the sort order stored in each widget model
-        // For now, return in the order they were added
+        print("  ✅ Total widgets converted: \(widgets.count)")
         return widgets
     }
 
     /// Convert to struct for use in views
+    /// NOTE: Calls allWidgets which includes defensive error handling
     var asStruct: Impression {
-        Impression(
+        print("🔄 Converting ImpressionModel to Impression struct: '\(title)'")
+
+        let impression = Impression(
             id: id,
             author: author?.asStruct ?? Author(id: "unknown", name: "Unknown"),
             timeAgo: timeAgo,
@@ -471,5 +503,8 @@ final class ImpressionModel {
             previewWidgets: previewWidgets,
             allWidgets: allWidgets
         )
+
+        print("✅ Successfully converted impression '\(title)'")
+        return impression
     }
 }
