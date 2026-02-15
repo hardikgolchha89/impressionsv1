@@ -1,0 +1,160 @@
+# Agent Handoff Document
+
+## Current Status: Publish Flow Implementation
+
+### What We Did
+1. Created complete SwiftData models for persistence (@Model classes)
+2. Built `ImpressionBuilder` service to convert form data → database objects
+3. Wired up publish button to save impressions to SwiftData
+4. Connected feed to load from database (@Query)
+5. Created `UserManager` for author management
+6. Fixed publish flow timing issues
+
+### Latest Changes (commits f9858b6)
+- Removed mock delay in PublishSummaryView
+- Fixed callback order: `onPublishComplete` before state reset
+- Added comprehensive error logging
+- Delayed coordinator reset to avoid state conflicts
+
+---
+
+## Current Issue: App Crashes After Publish
+
+**Symptoms:**
+- Publish button works, data saves to SwiftData ✅
+- Console shows "Successfully published impression" ✅
+- `onPublishComplete` callback fires ✅
+- Sheet tries to dismiss but app crashes 💥
+- Terminal shows `(lldb)` debugger prompt
+
+**User's Console Output:**
+```
+✅ Successfully published impression: Brunch with partner at Bandra Born
+🔵 onPublishComplete called - dismissing sheet
+warning: TypeSystemSwiftTypeRef::GetNumChildren: had to engage SwiftASTContext fallback
+(lldb)
+```
+
+**Likely Cause:**
+The crash happens AFTER dismiss is called. Probable issues:
+1. ContentView's @Query tries to fetch and crashes converting ImpressionModel → Impression struct
+2. The `asStruct` computed property (ImpressionModel line 460-474) might be crashing on widget conversion
+3. SwiftData relationship issue when querying newly saved data
+
+---
+
+## Critical Files
+
+### Models & Persistence
+- `/home/user/impressionsv1/impressionsv1/Models.swift` - SwiftData @Model classes (lines 1-550)
+  - `ImpressionModel` - main impression entity
+  - `AuthorModel` - user/author
+  - Widget models: `PhotoWidgetDataModel`, `QuoteWidgetDataModel`, etc.
+  - `asStruct` computed property (line 460) - **LIKELY CRASH POINT**
+
+- `/home/user/impressionsv1/impressionsv1/ImpressionBuilder.swift` - Converts ImpressionData → ImpressionModel
+
+- `/home/user/impressionsv1/impressionsv1/UserManager.swift` - Manages current user
+
+### Flow & Views
+- `/home/user/impressionsv1/impressionsv1/impressionsv1/CreateImpressionCoordinator.swift` - Manages creation flow
+  - `publish()` method (line 150-210) - saves to SwiftData
+
+- `/home/user/impressionsv1/impressionsv1/PublishSummaryView.swift` - Final publish screen
+  - `publishImpression()` method (line 143) - triggers publish
+
+- `/home/user/impressionsv1/impressionsv1/ContentView.swift` - Main feed
+  - Line 13: `@Query` fetches ImpressionModel objects
+  - Line 18: `impressionModels.map { $0.asStruct }` - **POTENTIAL CRASH**
+
+---
+
+## Next Steps to Debug
+
+### 1. Check Console for Full Error
+When app crashes and shows `(lldb)`, type:
+```
+bt
+```
+This shows the full stack trace revealing exactly which line crashes.
+
+### 2. Add Try-Catch to asStruct
+The `asStruct` computed property (Models.swift line 460) converts database objects to display structs. Wrap it in error handling:
+
+```swift
+var asStruct: Impression {
+    do {
+        // Existing conversion logic
+    } catch {
+        print("❌ asStruct conversion failed: \(error)")
+        // Return minimal valid Impression
+    }
+}
+```
+
+### 3. Simplify First
+Test if the crash is in widget conversion:
+- Temporarily comment out all widget conversion in `asStruct`
+- Return an Impression with empty widgets array
+- If this works, add widgets back one type at a time
+
+### 4. Check SwiftData Query
+ContentView line 13-18 might be the issue. Try:
+```swift
+@Query(sort: \ImpressionModel.createdAt, order: .reverse)
+var impressionModels: [ImpressionModel]
+
+private var impressions: [Impression] {
+    impressionModels.compactMap { model in
+        do {
+            return try model.asStruct
+        } catch {
+            print("Failed to convert: \(error)")
+            return nil
+        }
+    }
+}
+```
+
+---
+
+## User Context
+
+**Project:** iOS social dining review app (SwiftUI + SwiftData)
+**Timeline:** 2-3 week MVP for 100 test users
+**Priorities:**
+1. Complete create flow (CURRENT)
+2. Onboarding screens
+3. My Impressions view
+
+**User has:** Partial Figma designs, wants local-only storage (no backend)
+
+**Roadmap:** Created comprehensive 2-3 week plan in `/root/.claude/plans/sorted-swinging-sundae.md`
+
+---
+
+## Branch Info
+- Working branch: `claude/review-codebase-sijDz`
+- Latest commit: `f9858b6` - "fix: Improve publish flow timing and error handling"
+- All changes committed and pushed
+
+---
+
+## Quick Diagnosis Command
+
+Ask user to run this in Xcode console after crash:
+```
+(lldb) po error
+(lldb) bt
+(lldb) frame variable
+```
+
+Then examine the ImpressionModel.asStruct method and ContentView.impressions mapping.
+
+---
+
+## Most Likely Fix
+
+The crash is probably in `Models.swift` lines 460-550 where `asStruct` converts database models to display structs. The widget relationship arrays might be nil or malformed.
+
+Check if widgets are actually being saved correctly by adding logging to ImpressionBuilder or by inspecting the database after save.
