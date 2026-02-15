@@ -15,6 +15,6 @@ enum AppConfig {
     static let googlePlacesAPIKey = "AIzaSyBry303Z-Jkq2KPks-y_HwM63AuxAS8yYk"
 
     static var isGooglePlacesConfigured: Bool {
-        googlePlacesAPIKey != "AIzaSyBry303Z-Jkq2KPks-y_HwM63AuxAS8yYk" && !googlePlacesAPIKey.isEmpty
+        !googlePlacesAPIKey.isEmpty && googlePlacesAPIKey.hasPrefix("AIza")
     }
 }
