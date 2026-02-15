@@ -12,9 +12,9 @@ enum AppConfig {
     // Get your key at: https://console.cloud.google.com/apis/credentials
     // Enable "Places API (New)" in your project
     // Format should be: AIzaSy... (not a private RSA key!)
-    static let googlePlacesAPIKey = "YOUR_GOOGLE_PLACES_API_KEY_HERE"
+    static let googlePlacesAPIKey = "AIzaSyBry303Z-Jkq2KPks-y_HwM63AuxAS8yYk"
 
     static var isGooglePlacesConfigured: Bool {
-        googlePlacesAPIKey != "YOUR_GOOGLE_PLACES_API_KEY_HERE" && !googlePlacesAPIKey.isEmpty
+        googlePlacesAPIKey != "AIzaSyBry303Z-Jkq2KPks-y_HwM63AuxAS8yYk" && !googlePlacesAPIKey.isEmpty
     }
 }
