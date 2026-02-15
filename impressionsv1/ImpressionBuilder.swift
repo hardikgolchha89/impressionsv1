@@ -223,11 +223,37 @@ struct ImpressionBuilder {
         Bool.random() ? "pink" : "blue"
     }
 
-    /// Save UIImage and return a path/identifier
-    /// For now, returns a placeholder. In production, would save to Documents directory.
+    /// Save UIImage to Documents directory and return absolute file path
     private static func saveImageAndGetPath(_ image: UIImage, index: Int) -> String {
-        // TODO: Implement actual image saving to Documents directory
-        // For now, return placeholder
-        return "photo_\(index)"
+        // Generate unique filename using UUID
+        let filename = "impression_photo_\(UUID().uuidString).jpg"
+
+        // Get Documents directory
+        guard let documentsDirectory = FileManager.default.urls(
+            for: .documentDirectory,
+            in: .userDomainMask
+        ).first else {
+            print("❌ Could not access Documents directory")
+            return ""
+        }
+
+        // Create full file URL
+        let fileURL = documentsDirectory.appendingPathComponent(filename)
+
+        // Convert UIImage to JPEG data (compress to 0.8 quality for reasonable file size)
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            print("❌ Could not convert image to JPEG data")
+            return ""
+        }
+
+        // Write to disk
+        do {
+            try imageData.write(to: fileURL)
+            print("✅ Saved image to: \(fileURL.path)")
+            return fileURL.path  // Return absolute file path
+        } catch {
+            print("❌ Failed to save image: \(error)")
+            return ""
+        }
     }
 }

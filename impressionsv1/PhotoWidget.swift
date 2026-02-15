@@ -27,24 +27,18 @@ struct PhotoWidget: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             // Photo or Placeholder
-            if let imageUrl = photo.imageUrl {
-                Image(imageUrl)
+            if let imageUrl = photo.imageUrl, !imageUrl.isEmpty,
+               let uiImage = UIImage(contentsOfFile: imageUrl) {
+                // Load image from file path
+                Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(1, contentMode: .fill)
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadius.image))
             } else {
-                // Placeholder
-                ZStack {
-                    RoundedRectangle(cornerRadius: CornerRadius.image)
-                        .fill(Color.gray.opacity(0.3))
-                    
-                    Image(systemName: "photo")
-                        .font(.system(size: 32))
-                        .foregroundColor(.gray)
-                }
-                .aspectRatio(1, contentMode: .fit)
+                // Placeholder (shown if no image or file doesn't exist)
+                photoPlaceholder
             }
-            
+
             // Caption (if provided)
             if let caption = photo.caption {
                 Text(caption)
@@ -53,6 +47,19 @@ struct PhotoWidget: View {
                     .lineLimit(2)
             }
         }
+    }
+
+    // MARK: - Placeholder View
+    private var photoPlaceholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: CornerRadius.image)
+                .fill(Color.gray.opacity(0.3))
+
+            Image(systemName: "photo")
+                .font(.system(size: 32))
+                .foregroundColor(.gray)
+        }
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 
