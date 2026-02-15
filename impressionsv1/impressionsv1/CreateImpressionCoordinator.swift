@@ -198,16 +198,14 @@ class CreateImpressionCoordinator: ObservableObject {
             print("   - Prompts answered: \(data.answeredPrompts.count)")
             print("   - Photos: \(data.photos.count)")
 
-            // Notify completion BEFORE resetting state
+            // CRITICAL: Reset state BEFORE calling completion to prevent race condition
+            // This ensures coordinator state is clean when ContentView's @Query re-fetches
+            print("🔵 Resetting coordinator state before callback")
+            self.start()
+
+            // Now notify completion and dismiss sheet
             print("🔵 Calling onPublishComplete callback...")
             onPublishComplete?()
-            print("🔵 Callback completed, resetting coordinator state...")
-
-            // Reset flow state after callback completes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("🔵 Resetting coordinator state")
-                self.start()
-            }
         } catch {
             print("❌ Failed to save impression:")
             print("   Error: \(error)")
