@@ -409,9 +409,38 @@ final class ImpressionModel {
         return "now"
     }
 
-    /// Get all widgets sorted by sortOrder for preview (first 2)
+    /// Get preview widgets: prioritize showing 1 photo + 1 quote for best preview
     var previewWidgets: [Widget] {
-        Array(allWidgets.prefix(2))
+        let all = allWidgets
+        var preview: [Widget] = []
+
+        // Try to get 1 photo
+        if let photoWidget = all.first(where: {
+            if case .photo = $0.type { return true }
+            return false
+        }) {
+            preview.append(photoWidget)
+        }
+
+        // Try to get 1 quote
+        if let quoteWidget = all.first(where: {
+            if case .quote = $0.type { return true }
+            return false
+        }) {
+            preview.append(quoteWidget)
+        }
+
+        // If we don't have 2 widgets yet, fill with first available widgets
+        if preview.count < 2 {
+            for widget in all {
+                if !preview.contains(where: { $0.id == widget.id }) {
+                    preview.append(widget)
+                    if preview.count >= 2 { break }
+                }
+            }
+        }
+
+        return Array(preview.prefix(2))
     }
 
     /// Get all widgets sorted by sortOrder

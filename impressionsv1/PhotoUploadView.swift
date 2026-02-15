@@ -119,14 +119,22 @@ struct PhotoUploadView: View {
         .onChange(of: selectedItem) { oldValue, newValue in
             Task {
                 if let newItem = newValue, let slotIndex = selectedSlot {
+                    print("📷 Loading photo for slot \(slotIndex)...")
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         // Resize image to max 1024x1024
                         let resizedImage = resizeImage(image, maxDimension: 1024)
-                        selectedPhotos[slotIndex] = resizedImage
+                        await MainActor.run {
+                            selectedPhotos[slotIndex] = resizedImage
+                            print("✅ Photo loaded for slot \(slotIndex), total photos: \(selectedPhotos.count)")
+                        }
+                    } else {
+                        print("❌ Failed to load photo for slot \(slotIndex)")
                     }
-                    selectedItem = nil
-                    selectedSlot = nil
+                    await MainActor.run {
+                        selectedItem = nil
+                        selectedSlot = nil
+                    }
                 }
             }
         }
@@ -143,6 +151,7 @@ struct PhotoUploadView: View {
     
     // MARK: - Helper Methods
     private func handleSlotTap(_ slotIndex: Int) {
+        print("👆 Tapped slot \(slotIndex), has photo: \(selectedPhotos[slotIndex] != nil)")
         if selectedPhotos[slotIndex] != nil {
             // Filled slot - show action sheet
             actionSheetSlot = slotIndex
@@ -150,6 +159,7 @@ struct PhotoUploadView: View {
         } else {
             // Empty slot - open photo picker
             selectedSlot = slotIndex
+            print("🖼️  Opening photo picker for slot \(slotIndex)")
         }
     }
     
