@@ -111,8 +111,8 @@ struct PlaceSelectionView: View {
                         TextField("Search", text: $searchText)
                             .font(AppFont.body)
                             .foregroundColor(.textPrimary)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
                         
                         if !searchText.isEmpty {
                             Button(action: {
@@ -176,7 +176,7 @@ struct PlaceSelectionView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

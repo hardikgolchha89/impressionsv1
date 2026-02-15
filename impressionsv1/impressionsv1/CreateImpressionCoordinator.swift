@@ -146,73 +146,47 @@ class CreateImpressionCoordinator: ObservableObject {
         advance(to: .publishSummary)
     }
     
-    func publish() {
-        print("🔵 publish() called")
-        print("   - userManager: \(userManager != nil ? "✅" : "❌")")
-        print("   - currentUser: \(userManager?.currentUser != nil ? "✅" : "❌")")
-        print("   - modelContext: \(modelContext != nil ? "✅" : "❌")")
-
+    /// Saves the impression to SwiftData. Returns true on success.
+    /// Does NOT reset state or dismiss — the caller handles that.
+    @discardableResult
+    func publish() -> Bool {
         guard let userManager = userManager,
               let currentUser = userManager.currentUser,
               let context = modelContext else {
-            print("❌ Error: UserManager or ModelContext not available")
-            print("   - Missing: userManager=\(userManager == nil), currentUser=\(userManager?.currentUser == nil), context=\(modelContext == nil)")
-            return
+            print("❌ publish failed: missing dependencies")
+            return false
         }
 
-        // Build impression using ImpressionBuilder
         let impression = ImpressionBuilder.buildImpression(
             from: data,
             author: currentUser
         )
 
-        // Insert into SwiftData
-        // Note: We need to manually insert child objects because SwiftData doesn't
-        // auto-cascade on insert (only on delete with deleteRule: .cascade)
+        // Insert into SwiftData (child objects need manual insertion)
         context.insert(impression)
-
-        // Insert all child widgets
         impression.photoWidgets?.forEach { context.insert($0) }
         impression.quoteWidgets?.forEach { context.insert($0) }
         impression.infoWidgets?.forEach { context.insert($0) }
         impression.mapWidgets?.forEach { context.insert($0) }
+        impression.pairingWidgets?.forEach { context.insert($0) }
 
-        // Insert food grid widgets and their nested items
         impression.foodGridWidgets?.forEach { foodGrid in
             context.insert(foodGrid)
             foodGrid.items?.forEach { context.insert($0) }
         }
 
-        // Insert order list widgets and their nested items
         impression.orderListWidgets?.forEach { orderList in
             context.insert(orderList)
             orderList.allItems?.forEach { context.insert($0) }
         }
 
         do {
-            print("🔵 Saving to SwiftData...")
             try context.save()
-            print("✅ SwiftData save successful")
-            print("✅ Successfully published impression: \(data.title)")
-            print("   - Place: \(data.place?.name ?? "N/A")")
-            print("   - Prompts answered: \(data.answeredPrompts.count)")
-            print("   - Photos: \(data.photos.count)")
-
-            // CRITICAL: Reset state BEFORE calling completion to prevent race condition
-            // This ensures coordinator state is clean when ContentView's @Query re-fetches
-            print("🔵 Resetting coordinator state before callback")
-            self.start()
-
-            // Now notify completion and dismiss sheet
-            print("🔵 Calling onPublishComplete callback...")
-            onPublishComplete?()
+            print("✅ Published: \(data.title)")
+            return true
         } catch {
-            print("❌ Failed to save impression:")
-            print("   Error: \(error)")
-            print("   LocalizedDescription: \(error.localizedDescription)")
-            if let nsError = error as NSError? {
-                print("   Details: \(nsError.userInfo)")
-            }
+            print("❌ Save failed: \(error)")
+            return false
         }
     }
     

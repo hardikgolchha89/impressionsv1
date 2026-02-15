@@ -112,7 +112,7 @@ struct TitleCustomizationView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onTapGesture {
             // Dismiss keyboard when tapping outside card
             if isEditing {

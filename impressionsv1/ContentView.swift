@@ -132,7 +132,7 @@ struct ContentView: View {
                     .ignoresSafeArea(edges: .bottom)
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCreateFlow) {
                 CreateImpressionFlowView()
             }

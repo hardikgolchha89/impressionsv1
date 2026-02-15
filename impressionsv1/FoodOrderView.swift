@@ -66,7 +66,7 @@ struct FoodOrderView: View {
                     TextEditor(text: $dishesText)
                         .font(AppFont.body)
                         .foregroundColor(.textPrimary)
-                        .autocapitalization(.words)
+                        .textInputAutocapitalization(.words)
                         .keyboardType(.default)
                         .focused($isTextEditorFocused)
                         .scrollContentBackground(.hidden)
@@ -110,7 +110,7 @@ struct FoodOrderView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onTapGesture {
             // Dismiss keyboard when tapping outside
             isTextEditorFocused = false

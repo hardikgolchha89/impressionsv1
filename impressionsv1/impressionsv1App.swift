@@ -43,10 +43,6 @@ struct impressionsv1App: App {
             ContentView()
                 .environment(userManager)
                 .onAppear {
-                    // VERIFICATION LOG - If you see this, new code is running!
-                    print("🚀🚀🚀 CODE UPDATED - BUILD TIME: Feb 15, 2026 - COMMIT: be26ce7 🚀🚀🚀")
-
-                    // Load or create user on app launch
                     userManager.loadOrCreateUser(context: sharedModelContainer.mainContext)
                 }
         }

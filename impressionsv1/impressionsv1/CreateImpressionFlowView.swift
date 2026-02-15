@@ -73,20 +73,13 @@ struct CreateImpressionFlowView: View {
                     }
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .onAppear {
-                // Inject dependencies into coordinator
-                print("🔵 Injecting dependencies into coordinator")
-                print("   - userManager: \(userManager.currentUser?.name ?? "nil")")
-                print("   - modelContext: \(modelContext)")
                 coordinator.userManager = userManager
                 coordinator.modelContext = modelContext
                 coordinator.onPublishComplete = {
-                    // Dismiss the create flow sheet
-                    print("🔵 onPublishComplete called - dismissing sheet")
                     dismiss()
                 }
-                print("✅ Dependencies injected")
             }
         }
     }
