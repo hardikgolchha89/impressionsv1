@@ -14,6 +14,7 @@ enum CreateFlowStep: Equatable {
     case placeSelection
     case mealSelection
     case companionsSelection
+    case priceRangeSelection
     case timeSelection
     case vibeSelection
     case foodOrder
@@ -30,6 +31,7 @@ struct ImpressionData {
     var place: Place?
     var meal: MealType?
     var companions: Set<CompanionType> = []
+    var priceRange: PriceRange?
     var time: TimeOfDay?
     var vibe: VibeType?
     var dishes: [String] = []
@@ -83,6 +85,11 @@ class CreateImpressionCoordinator: ObservableObject {
     
     func completeCompanions(companions: Set<CompanionType>) {
         data.companions = companions
+        advance(to: .priceRangeSelection)
+    }
+
+    func completePriceRange(priceRange: PriceRange) {
+        data.priceRange = priceRange
         advance(to: .timeSelection)
     }
     

@@ -68,9 +68,10 @@ struct Impression: Identifiable {
     let occasion: String
     let priceRange: String?  // e.g., "₹₹", "₹₹₹"
     let cardColor: ImpressionCardColor
+    let coverPhotoPath: String?  // File path to cover photo on disk
     let previewWidgets: [Widget]  // First 2 widgets to show in feed card
     let allWidgets: [Widget]      // All widgets for detail view
-    
+
     init(
         id: String = UUID().uuidString,
         author: Author,
@@ -81,6 +82,7 @@ struct Impression: Identifiable {
         occasion: String,
         priceRange: String? = nil,
         cardColor: ImpressionCardColor,
+        coverPhotoPath: String? = nil,
         previewWidgets: [Widget],
         allWidgets: [Widget]
     ) {
@@ -93,6 +95,7 @@ struct Impression: Identifiable {
         self.occasion = occasion
         self.priceRange = priceRange
         self.cardColor = cardColor
+        self.coverPhotoPath = coverPhotoPath
         self.previewWidgets = previewWidgets
         self.allWidgets = allWidgets
     }
@@ -321,6 +324,7 @@ final class ImpressionModel {
     var occasion: String
     var priceRange: String?
     var cardColorRawValue: String // "pink" or "blue"
+    var coverPhotoPath: String?  // File path to cover photo on disk
 
     @Relationship(deleteRule: .nullify)
     var author: AuthorModel?
@@ -355,6 +359,7 @@ final class ImpressionModel {
         occasion: String,
         priceRange: String? = nil,
         cardColorRawValue: String = "pink",
+        coverPhotoPath: String? = nil,
         author: AuthorModel? = nil
     ) {
         self.id = id
@@ -365,6 +370,7 @@ final class ImpressionModel {
         self.occasion = occasion
         self.priceRange = priceRange
         self.cardColorRawValue = cardColorRawValue
+        self.coverPhotoPath = coverPhotoPath
         self.author = author
         self.photoWidgets = []
         self.quoteWidgets = []
@@ -468,6 +474,7 @@ final class ImpressionModel {
             occasion: occasion,
             priceRange: priceRange,
             cardColor: cardColor,
+            coverPhotoPath: coverPhotoPath,
             previewWidgets: previewWidgets,
             allWidgets: allWidgets
         )

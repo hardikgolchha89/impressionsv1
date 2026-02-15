@@ -31,7 +31,10 @@ struct CreateImpressionFlowView: View {
                         
                     case .companionsSelection:
                         CompanionsSelectionView(coordinator: coordinator)
-                        
+
+                    case .priceRangeSelection:
+                        PriceRangeSelectionView(coordinator: coordinator)
+
                     case .timeSelection:
                         TimeSelectionView(coordinator: coordinator)
                         

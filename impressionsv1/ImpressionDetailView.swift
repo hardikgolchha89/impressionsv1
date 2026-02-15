@@ -18,9 +18,9 @@ struct ImpressionDetail: Identifiable {
     let occasion: String
     let priceRange: String?
     let cardColor: ImpressionCardColor
-    let heroImage: String
+    let coverPhotoPath: String?
     let widgets: [Widget]
-    
+
     init(
         id: String = UUID().uuidString,
         authorName: String,
@@ -31,7 +31,7 @@ struct ImpressionDetail: Identifiable {
         occasion: String,
         priceRange: String? = nil,
         cardColor: ImpressionCardColor,
-        heroImage: String,
+        coverPhotoPath: String? = nil,
         widgets: [Widget]
     ) {
         self.id = id
@@ -43,12 +43,12 @@ struct ImpressionDetail: Identifiable {
         self.occasion = occasion
         self.priceRange = priceRange
         self.cardColor = cardColor
-        self.heroImage = heroImage
+        self.coverPhotoPath = coverPhotoPath
         self.widgets = widgets
     }
-    
+
     // Convert from Impression
-    init(from impression: Impression, heroImage: String = "placeholder") {
+    init(from impression: Impression) {
         self.id = impression.id
         self.authorName = impression.author.name
         self.timeAgo = impression.timeAgo
@@ -58,7 +58,7 @@ struct ImpressionDetail: Identifiable {
         self.occasion = impression.occasion
         self.priceRange = impression.priceRange
         self.cardColor = impression.cardColor
-        self.heroImage = heroImage
+        self.coverPhotoPath = impression.coverPhotoPath
         self.widgets = impression.allWidgets
     }
 }
@@ -71,22 +71,28 @@ struct ImpressionDetailView: View {
         ScrollView {
             VStack(spacing: 0) {
                 // Hero Image
-                ZStack {
-                    // Placeholder background
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                    
-                    // Placeholder icon
-                    Image(systemName: "photo")
-                        .font(.system(size: 40))
-                        .foregroundColor(.gray)
+                if let coverPath = impression.coverPhotoPath,
+                   !coverPath.isEmpty,
+                   let uiImage = UIImage(contentsOfFile: coverPath) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 400)
+                        .clipped()
+                } else {
+                    // Placeholder when no cover photo
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+
+                        Image(systemName: "photo")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 400)
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 400)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 0)
-                        .stroke(Color.appBlue, lineWidth: 4)
-                )
                 
                 // Content Container
                 VStack(alignment: .leading, spacing: 0) {
