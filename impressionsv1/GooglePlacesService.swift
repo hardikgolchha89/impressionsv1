@@ -58,6 +58,7 @@ class GooglePlacesService: ObservableObject {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmed.isEmpty else {
+            print("🔍 Search cleared (empty query)")
             searchResults = []
             isSearching = false
             return
@@ -65,27 +66,34 @@ class GooglePlacesService: ObservableObject {
 
         guard AppConfig.isGooglePlacesConfigured else {
             // Fallback: return filtered hardcoded results when no API key
+            print("⚠️ Google Places API not configured, using fallback search for: \"\(trimmed)\"")
             searchResults = fallbackSearch(trimmed)
+            print("📍 Fallback results: \(searchResults.count) places")
             return
         }
 
+        print("🔍 Starting search for: \"\(trimmed)\"")
         isSearching = true
 
         searchTask = Task {
             // Debounce: wait 300ms so we don't fire on every keystroke
             try? await Task.sleep(nanoseconds: 300_000_000)
 
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                print("⏹️ Search cancelled for: \"\(trimmed)\"")
+                return
+            }
 
             do {
                 let results = try await fetchAutocomplete(query: trimmed)
                 if !Task.isCancelled {
+                    print("✅ Found \(results.count) places for: \"\(trimmed)\"")
                     self.searchResults = results
                     self.isSearching = false
                 }
             } catch {
                 if !Task.isCancelled {
-                    print("Places search error: \(error)")
+                    print("❌ Places search error for \"\(trimmed)\": \(error)")
                     self.searchResults = []
                     self.isSearching = false
                 }
@@ -126,19 +134,29 @@ class GooglePlacesService: ObservableObject {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        print("🌐 Calling Google Places API...")
         let (data, response) = try await session.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            print("Places API returned status \(statusCode)")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("❌ Invalid response type")
+            return []
+        }
+
+        print("📡 API Response: HTTP \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("❌ API Error Response: \(responseString)")
+            }
             // On error, return empty rather than crash
             return []
         }
 
         let decoded = try JSONDecoder().decode(PlacesAutocompleteResponse.self, from: data)
+        let suggestionCount = decoded.suggestions?.count ?? 0
+        print("📝 Decoded \(suggestionCount) suggestions from API")
 
-        return (decoded.suggestions ?? []).compactMap { suggestion -> Place? in
+        let places = (decoded.suggestions ?? []).compactMap { suggestion -> Place? in
             guard let prediction = suggestion.placePrediction else { return nil }
 
             let name = prediction.structuredFormat?.mainText?.text
@@ -154,6 +172,9 @@ class GooglePlacesService: ObservableObject {
                 googlePlaceId: prediction.placeId
             )
         }
+
+        print("🏪 Mapped to \(places.count) Place objects")
+        return places
     }
 
     /// Fallback search against hardcoded places (when no API key)
