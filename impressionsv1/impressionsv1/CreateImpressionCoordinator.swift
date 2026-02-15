@@ -166,45 +166,55 @@ class CreateImpressionCoordinator: ObservableObject {
             author: currentUser
         )
 
-        // Insert into SwiftData - must insert impression AND all child widgets
+        // Insert into SwiftData
+        // Note: We need to manually insert child objects because SwiftData doesn't
+        // auto-cascade on insert (only on delete with deleteRule: .cascade)
         context.insert(impression)
 
-        // Insert all photo widgets
+        // Insert all child widgets
         impression.photoWidgets?.forEach { context.insert($0) }
-
-        // Insert all quote widgets
         impression.quoteWidgets?.forEach { context.insert($0) }
-
-        // Insert all info widgets
         impression.infoWidgets?.forEach { context.insert($0) }
-
-        // Insert all map widgets
         impression.mapWidgets?.forEach { context.insert($0) }
 
-        // Insert food grid widgets and their items
+        // Insert food grid widgets and their nested items
         impression.foodGridWidgets?.forEach { foodGrid in
             context.insert(foodGrid)
             foodGrid.items?.forEach { context.insert($0) }
         }
 
-        // Insert order list widgets and their items
+        // Insert order list widgets and their nested items
         impression.orderListWidgets?.forEach { orderList in
             context.insert(orderList)
             orderList.allItems?.forEach { context.insert($0) }
         }
 
         do {
+            print("🔵 Saving to SwiftData...")
             try context.save()
+            print("✅ SwiftData save successful")
             print("✅ Successfully published impression: \(data.title)")
             print("   - Place: \(data.place?.name ?? "N/A")")
             print("   - Prompts answered: \(data.answeredPrompts.count)")
             print("   - Photos: \(data.photos.count)")
 
-            // Reset flow and notify completion
-            start()
+            // Notify completion BEFORE resetting state
+            print("🔵 Calling onPublishComplete callback...")
             onPublishComplete?()
+            print("🔵 Callback completed, resetting coordinator state...")
+
+            // Reset flow state after callback completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("🔵 Resetting coordinator state")
+                self.start()
+            }
         } catch {
-            print("❌ Failed to save impression: \(error)")
+            print("❌ Failed to save impression:")
+            print("   Error: \(error)")
+            print("   LocalizedDescription: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("   Details: \(nsError.userInfo)")
+            }
         }
     }
     

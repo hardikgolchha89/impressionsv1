@@ -142,11 +142,13 @@ struct PublishSummaryView: View {
     // MARK: - Actions
     private func publishImpression() {
         isPublishing = true
-        
-        // Mock save (replace with real backend later)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+
+        // Publish immediately (no mock delay)
+        coordinator.publish()
+
+        // Reset state after a brief delay to show feedback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isPublishing = false
-            coordinator.publish()
         }
     }
 }
