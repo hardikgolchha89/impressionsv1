@@ -118,7 +118,7 @@ class GooglePlacesService: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
 
-        // Request body — filter to food/drink establishments
+        // Request body — filter to food/drink establishments (max 5 types allowed)
         let body: [String: Any] = [
             "input": query,
             "includedPrimaryTypes": [
@@ -126,9 +126,7 @@ class GooglePlacesService: ObservableObject {
                 "cafe",
                 "bar",
                 "bakery",
-                "meal_delivery",
-                "meal_takeaway",
-                "food"
+                "meal_takeaway"
             ]
         ]
 
