@@ -14,8 +14,12 @@ struct ContentView: View {
     @Environment(UserManager.self) private var userManager
 
     // Convert models to structs for display
+    // NOTE: Uses defensive error handling in asStruct to prevent crashes
     private var impressions: [Impression] {
-        impressionModels.map { $0.asStruct }
+        print("🔍 ContentView: Loading \(impressionModels.count) impression(s) from database")
+        let result = impressionModels.map { $0.asStruct }
+        print("✅ ContentView: Successfully converted \(result.count) impression(s)")
+        return result
     }
     
     var body: some View {
