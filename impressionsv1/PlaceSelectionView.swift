@@ -443,6 +443,14 @@ struct PlaceCard: View {
         return tints[index]
     }
 
+    private var iconFallback: some View {
+        Image(systemName: place.imageURL)
+            .font(.system(size: 32, weight: .light))
+            .foregroundColor(isSelected ? Color.white.opacity(0.9) : Color.white.opacity(0.45))
+            .symbolRenderingMode(.monochrome)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             // Card tile
@@ -477,45 +485,38 @@ struct PlaceCard: View {
                             lineWidth: 1
                         )
 
-                    // Photo or icon fallback
-                    if let photoURL = place.photoURL {
-                        AsyncImage(url: photoURL) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .transition(.opacity.animation(.easeIn(duration: 0.3)))
-                            case .failure(let error):
-                                let _ = print("❌ [AsyncImage] Failed for \(place.name): \(error.localizedDescription) url=\(photoURL)")
-                                Image(systemName: place.imageURL)
-                                    .font(.system(size: 32, weight: .light))
-                                    .foregroundColor(Color.white.opacity(0.45))
-                                    .symbolRenderingMode(.monochrome)
-                            case .empty:
-                                Image(systemName: place.imageURL)
-                                    .font(.system(size: 32, weight: .light))
-                                    .foregroundColor(Color.white.opacity(0.45))
-                                    .symbolRenderingMode(.monochrome)
-                            @unknown default:
-                                Image(systemName: place.imageURL)
-                                    .font(.system(size: 32, weight: .light))
-                                    .foregroundColor(Color.white.opacity(0.45))
+                    // Photo or icon fallback — use GeometryReader so AsyncImage
+                    // fills exactly the square regardless of native image dimensions
+                    GeometryReader { geo in
+                        let size = geo.size.width
+                        if let photoURL = place.photoURL {
+                            AsyncImage(url: photoURL) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: size, height: size)
+                                        .clipped()
+                                        .transition(.opacity.animation(.easeIn(duration: 0.3)))
+                                case .failure(let error):
+                                    let _ = print("❌ [AsyncImage] Failed for \(place.name): \(error.localizedDescription)")
+                                    iconFallback.frame(width: size, height: size)
+                                case .empty:
+                                    // Shimmer placeholder while loading
+                                    Color.white.opacity(0.05)
+                                        .frame(width: size, height: size)
+                                @unknown default:
+                                    iconFallback.frame(width: size, height: size)
+                                }
                             }
+                        } else {
+                            iconFallback.frame(width: size, height: size)
                         }
-                    } else {
-                        Image(systemName: place.imageURL)
-                            .font(.system(size: 32, weight: .light))
-                            .foregroundColor(
-                                isSelected
-                                    ? Color.white.opacity(0.9)
-                                    : Color.white.opacity(0.45)
-                            )
-                            .symbolRenderingMode(.monochrome)
                     }
                 }
                 .aspectRatio(1, contentMode: .fit)
-                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 // Selection checkmark
                 if isSelected {
