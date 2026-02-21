@@ -206,7 +206,7 @@ enum GooglePlacesAPI {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
-        request.setValue("places.photos", forHTTPHeaderField: "X-Goog-FieldMask")
+        request.setValue("photos", forHTTPHeaderField: "X-Goog-FieldMask")
 
         let (data, response) = try await session.data(for: request)
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
