@@ -577,13 +577,13 @@ struct PlaceResultRow: View {
                                     .clipShape(Circle())
                                     .transition(.opacity.animation(.easeIn(duration: 0.3)))
                             default:
-                                Image(systemName: "mappin.fill")
+                                Image(systemName: "mappin")
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(Color.white.opacity(0.4))
                             }
                         }
                     } else {
-                        Image(systemName: "mappin.fill")
+                        Image(systemName: "mappin")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(Color.white.opacity(0.4))
                     }
