@@ -191,7 +191,11 @@ struct PlaceSelectionView: View {
 
     // Fetch Google Maps photos for popular places in parallel
     private func fetchPopularPhotos() async {
-        guard AppConfig.isGooglePlacesConfigured else { return }
+        guard AppConfig.isGooglePlacesConfigured else {
+            print("⚠️ [PlaceSelection] Google Places not configured, skipping photo fetch")
+            return
+        }
+        print("🚀 [PlaceSelection] Starting photo fetch for \(popularPlaces.count) popular places")
 
         // Snapshot names/indices before entering the task group
         let snapshot = popularPlaces.enumerated().map { ($0.offset, $0.element) }
@@ -216,6 +220,8 @@ struct PlaceSelectionView: View {
             }
             return collected
         }
+
+        print("🏁 [PlaceSelection] Photo fetch complete — got \(photos.count)/\(popularPlaces.count) photos")
 
         // Apply results back on main actor
         for (index, url) in photos {
@@ -480,7 +486,13 @@ struct PlaceCard: View {
                                     .resizable()
                                     .scaledToFill()
                                     .transition(.opacity.animation(.easeIn(duration: 0.3)))
-                            case .failure, .empty:
+                            case .failure(let error):
+                                let _ = print("❌ [AsyncImage] Failed for \(place.name): \(error.localizedDescription) url=\(photoURL)")
+                                Image(systemName: place.imageURL)
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundColor(Color.white.opacity(0.45))
+                                    .symbolRenderingMode(.monochrome)
+                            case .empty:
                                 Image(systemName: place.imageURL)
                                     .font(.system(size: 32, weight: .light))
                                     .foregroundColor(Color.white.opacity(0.45))

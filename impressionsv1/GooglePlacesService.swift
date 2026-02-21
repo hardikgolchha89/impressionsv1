@@ -167,6 +167,7 @@ enum GooglePlacesAPI {
 
     /// Google Places Autocomplete (New)
     static func autocomplete(query: String) async throws -> [Place] {
+        print("🔍 [Places] Autocomplete: \"\(query)\"")
         let url = URL(string: "https://places.googleapis.com/v1/places:autocomplete")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -180,19 +181,27 @@ enum GooglePlacesAPI {
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return [] }
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8) ?? "(unreadable)"
+            print("❌ [Places] Autocomplete HTTP \(statusCode) for \"\(query)\": \(body)")
+            return []
+        }
 
         let decoded = try JSONDecoder().decode(PlacesAutocompleteResponse.self, from: data)
-        return (decoded.suggestions ?? []).compactMap { suggestion -> Place? in
+        let places = (decoded.suggestions ?? []).compactMap { suggestion -> Place? in
             guard let prediction = suggestion.placePrediction else { return nil }
             let name = prediction.structuredFormat?.mainText?.text ?? prediction.text?.text ?? "Unknown"
             let location = prediction.structuredFormat?.secondaryText?.text
             return Place(name: name, imageURL: "mappin.circle.fill", location: location, googlePlaceId: prediction.placeId)
         }
+        print("✅ [Places] Autocomplete \"\(query)\" → \(places.count) results: \(places.prefix(3).map(\.name))")
+        return places
     }
 
     /// Fetch the first photo URL for a placeId via Places Details + Photo Media URL.
     static func firstPhotoURL(placeId: String) async throws -> URL? {
+        print("📸 [Places] Fetching photo for placeId: \(placeId.prefix(20))…")
         let url = URL(string: "https://places.googleapis.com/v1/places/\(placeId)")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -200,13 +209,24 @@ enum GooglePlacesAPI {
         request.setValue("places.photos", forHTTPHeaderField: "X-Goog-FieldMask")
 
         let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+        let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let body = String(data: data, encoding: .utf8) ?? "(unreadable)"
+            print("❌ [Places] Details HTTP \(statusCode) for \(placeId.prefix(20)): \(body)")
+            return nil
+        }
 
         let details = try JSONDecoder().decode(PlaceDetailsResponse.self, from: data)
-        guard let photoName = details.photos?.first?.name, !photoName.isEmpty else { return nil }
+        let photoCount = details.photos?.count ?? 0
+        guard let photoName = details.photos?.first?.name, !photoName.isEmpty else {
+            print("⚠️ [Places] No photos returned for \(placeId.prefix(20)) (photos array count: \(photoCount))")
+            if let raw = String(data: data, encoding: .utf8) { print("   Raw: \(raw.prefix(300))") }
+            return nil
+        }
 
         let encoded = photoName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? photoName
         let photoURLString = "https://places.googleapis.com/v1/\(encoded)/media?maxWidthPx=400&skipHttpRedirect=false&key=\(AppConfig.googlePlacesAPIKey)"
+        print("✅ [Places] Photo URL built for \(placeId.prefix(20)): \(photoURLString.prefix(80))…")
         return URL(string: photoURLString)
     }
 }
