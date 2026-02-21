@@ -14,13 +14,15 @@ struct Place: Identifiable {
     let imageURL: String
     let location: String?
     let googlePlaceId: String?
+    let photoURL: URL?
 
-    init(id: UUID = UUID(), name: String, imageURL: String, location: String? = nil, googlePlaceId: String? = nil) {
+    init(id: UUID = UUID(), name: String, imageURL: String, location: String? = nil, googlePlaceId: String? = nil, photoURL: URL? = nil) {
         self.id = id
         self.name = name
         self.imageURL = imageURL
         self.location = location
         self.googlePlaceId = googlePlaceId
+        self.photoURL = photoURL
     }
 }
 
@@ -99,9 +101,7 @@ struct PlaceSelectionView: View {
     @State private var selectedPlace: Place? = nil
     @State private var searchText: String = ""
     @FocusState private var isSearchFocused: Bool
-
-    // Popular places shown when search is empty
-    private let popularPlaces: [Place] = [
+    @State private var popularPlaces: [Place] = [
         Place(name: "The Bombay Canteen", imageURL: "fork.knife", location: "Lower Parel, Mumbai"),
         Place(name: "Lake View Cafe", imageURL: "cup.and.saucer.fill", location: "Powai, Mumbai"),
         Place(name: "Bastian", imageURL: "building.2.fill", location: "Worli, Mumbai"),
@@ -183,6 +183,35 @@ struct PlaceSelectionView: View {
         .onChange(of: searchText) { oldValue, newValue in
             selectedPlace = nil
             placesService.search(query: newValue)
+        }
+        .task {
+            await fetchPopularPhotos()
+        }
+    }
+
+    // Fetch Google Maps photos for popular places in parallel
+    private func fetchPopularPhotos() async {
+        guard AppConfig.isGooglePlacesConfigured else { return }
+        await withTaskGroup(of: (Int, URL?).self) { group in
+            for (index, place) in popularPlaces.enumerated() {
+                group.addTask {
+                    let url = await placesService.fetchPhotoURLByName(place.name)
+                    return (index, url)
+                }
+            }
+            for await (index, url) in group {
+                if let url {
+                    let place = popularPlaces[index]
+                    popularPlaces[index] = Place(
+                        id: place.id,
+                        name: place.name,
+                        imageURL: place.imageURL,
+                        location: place.location,
+                        googlePlaceId: place.googlePlaceId,
+                        photoURL: url
+                    )
+                }
+            }
         }
     }
 
@@ -426,17 +455,39 @@ struct PlaceCard: View {
                             lineWidth: 1
                         )
 
-                    // Icon
-                    Image(systemName: place.imageURL)
-                        .font(.system(size: 32, weight: .light))
-                        .foregroundColor(
-                            isSelected
-                                ? Color.white.opacity(0.9)
-                                : Color.white.opacity(0.45)
-                        )
-                        .symbolRenderingMode(.monochrome)
+                    // Photo or icon fallback
+                    if let photoURL = place.photoURL {
+                        AsyncImage(url: photoURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .transition(.opacity.animation(.easeIn(duration: 0.3)))
+                            case .failure, .empty:
+                                Image(systemName: place.imageURL)
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundColor(Color.white.opacity(0.45))
+                                    .symbolRenderingMode(.monochrome)
+                            @unknown default:
+                                Image(systemName: place.imageURL)
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundColor(Color.white.opacity(0.45))
+                            }
+                        }
+                    } else {
+                        Image(systemName: place.imageURL)
+                            .font(.system(size: 32, weight: .light))
+                            .foregroundColor(
+                                isSelected
+                                    ? Color.white.opacity(0.9)
+                                    : Color.white.opacity(0.45)
+                            )
+                            .symbolRenderingMode(.monochrome)
+                    }
                 }
                 .aspectRatio(1, contentMode: .fit)
+                .clipped()
 
                 // Selection checkmark
                 if isSelected {
@@ -495,9 +546,31 @@ struct PlaceResultRow: View {
                         )
                         .frame(width: 40, height: 40)
 
-                    Image(systemName: isSelected ? "checkmark" : "mappin.fill")
-                        .font(.system(size: isSelected ? 14 : 15, weight: .semibold))
-                        .foregroundColor(isSelected ? .black : Color.white.opacity(0.4))
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black)
+                    } else if let photoURL = place.photoURL {
+                        AsyncImage(url: photoURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                                    .transition(.opacity.animation(.easeIn(duration: 0.3)))
+                            default:
+                                Image(systemName: "mappin.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(Color.white.opacity(0.4))
+                            }
+                        }
+                    } else {
+                        Image(systemName: "mappin.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color.white.opacity(0.4))
+                    }
                 }
 
                 // Name + location

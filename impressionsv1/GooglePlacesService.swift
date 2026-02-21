@@ -2,7 +2,7 @@
 //  GooglePlacesService.swift
 //  impressionsv1
 //
-//  Handles Google Places Autocomplete API calls
+//  Handles Google Places Autocomplete + Photo API calls
 //
 
 import Foundation
@@ -40,6 +40,17 @@ struct StructuredFormat: Codable {
     let secondaryText: FormattedText?
 }
 
+/// Google Places Details response (for fetching photos)
+struct PlaceDetailsResponse: Codable {
+    let photos: [PlacePhoto]?
+}
+
+struct PlacePhoto: Codable {
+    let name: String?         // e.g. "places/ChIJ.../photos/AXCi..."
+    let widthPx: Int?
+    let heightPx: Int?
+}
+
 // MARK: - Google Places Service
 
 @MainActor
@@ -58,42 +69,62 @@ class GooglePlacesService: ObservableObject {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmed.isEmpty else {
-            print("🔍 Search cleared (empty query)")
             searchResults = []
             isSearching = false
             return
         }
 
         guard AppConfig.isGooglePlacesConfigured else {
-            // Fallback: return filtered hardcoded results when no API key
-            print("⚠️ Google Places API not configured, using fallback search for: \"\(trimmed)\"")
             searchResults = fallbackSearch(trimmed)
-            print("📍 Fallback results: \(searchResults.count) places")
             return
         }
 
-        print("🔍 Starting search for: \"\(trimmed)\"")
         isSearching = true
 
         searchTask = Task {
             // Debounce: wait 300ms so we don't fire on every keystroke
             try? await Task.sleep(nanoseconds: 300_000_000)
 
-            guard !Task.isCancelled else {
-                print("⏹️ Search cancelled for: \"\(trimmed)\"")
-                return
-            }
+            guard !Task.isCancelled else { return }
 
             do {
-                let results = try await fetchAutocomplete(query: trimmed)
+                var results = try await fetchAutocomplete(query: trimmed)
+                guard !Task.isCancelled else { return }
+
+                // Fetch first photo for each result in parallel
+                results = await withTaskGroup(of: (Int, URL?).self) { group in
+                    for (index, place) in results.enumerated() {
+                        if let placeId = place.googlePlaceId {
+                            group.addTask {
+                                let photoURL = try? await self.fetchFirstPhotoURL(placeId: placeId)
+                                return (index, photoURL)
+                            }
+                        }
+                    }
+
+                    var photoMap: [Int: URL] = [:]
+                    for await (index, url) in group {
+                        if let url { photoMap[index] = url }
+                    }
+
+                    return results.enumerated().map { (index, place) in
+                        Place(
+                            id: place.id,
+                            name: place.name,
+                            imageURL: place.imageURL,
+                            location: place.location,
+                            googlePlaceId: place.googlePlaceId,
+                            photoURL: photoMap[index]
+                        )
+                    }
+                }
+
                 if !Task.isCancelled {
-                    print("✅ Found \(results.count) places for: \"\(trimmed)\"")
                     self.searchResults = results
                     self.isSearching = false
                 }
             } catch {
                 if !Task.isCancelled {
-                    print("❌ Places search error for \"\(trimmed)\": \(error)")
                     self.searchResults = []
                     self.isSearching = false
                 }
@@ -108,6 +139,57 @@ class GooglePlacesService: ObservableObject {
         isSearching = false
     }
 
+    // MARK: - Photo fetching (public, for popular places grid)
+
+    /// Fetches the first Google Maps photo URL for a given placeId.
+    /// Returns nil if not available.
+    func fetchFirstPhotoURL(placeId: String) async throws -> URL? {
+        // Step 1: Get place details to obtain the first photo resource name
+        let detailsURL = URL(string: "https://places.googleapis.com/v1/places/\(placeId)")!
+
+        var detailsRequest = URLRequest(url: detailsURL)
+        detailsRequest.httpMethod = "GET"
+        detailsRequest.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
+        // Only request the photos field to minimise billing
+        detailsRequest.setValue("places.photos", forHTTPHeaderField: "X-Goog-FieldMask")
+
+        let (detailsData, detailsResponse) = try await session.data(for: detailsRequest)
+
+        guard let httpResponse = detailsResponse as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            return nil
+        }
+
+        let details = try JSONDecoder().decode(PlaceDetailsResponse.self, from: detailsData)
+
+        guard let photoName = details.photos?.first?.name, !photoName.isEmpty else {
+            return nil
+        }
+
+        // Step 2: Build the photo media URL (this is a direct URL, no second network call needed)
+        // Format: https://places.googleapis.com/v1/{photoName}/media?maxWidthPx=400&key=...
+        let encodedName = photoName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? photoName
+        let photoURLString = "https://places.googleapis.com/v1/\(encodedName)/media?maxWidthPx=400&skipHttpRedirect=false&key=\(AppConfig.googlePlacesAPIKey)"
+
+        return URL(string: photoURLString)
+    }
+
+    /// Searches for a place by name and returns its first photo URL.
+    /// Used for popular places (which don't have placeIds stored).
+    func fetchPhotoURLByName(_ name: String) async -> URL? {
+        guard AppConfig.isGooglePlacesConfigured else { return nil }
+
+        do {
+            let results = try await fetchAutocomplete(query: name)
+            guard let firstPlace = results.first, let placeId = firstPlace.googlePlaceId else {
+                return nil
+            }
+            return try await fetchFirstPhotoURL(placeId: placeId)
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: - Private
 
     private func fetchAutocomplete(query: String) async throws -> [Place] {
@@ -118,7 +200,6 @@ class GooglePlacesService: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
 
-        // Request body — filter to food/drink establishments (max 5 types allowed)
         let body: [String: Any] = [
             "input": query,
             "includedPrimaryTypes": [
@@ -132,29 +213,16 @@ class GooglePlacesService: ObservableObject {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        print("🌐 Calling Google Places API...")
         let (data, response) = try await session.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("❌ Invalid response type")
-            return []
-        }
-
-        print("📡 API Response: HTTP \(httpResponse.statusCode)")
-
-        guard httpResponse.statusCode == 200 else {
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("❌ API Error Response: \(responseString)")
-            }
-            // On error, return empty rather than crash
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
             return []
         }
 
         let decoded = try JSONDecoder().decode(PlacesAutocompleteResponse.self, from: data)
-        let suggestionCount = decoded.suggestions?.count ?? 0
-        print("📝 Decoded \(suggestionCount) suggestions from API")
 
-        let places = (decoded.suggestions ?? []).compactMap { suggestion -> Place? in
+        return (decoded.suggestions ?? []).compactMap { suggestion -> Place? in
             guard let prediction = suggestion.placePrediction else { return nil }
 
             let name = prediction.structuredFormat?.mainText?.text
@@ -170,9 +238,6 @@ class GooglePlacesService: ObservableObject {
                 googlePlaceId: prediction.placeId
             )
         }
-
-        print("🏪 Mapped to \(places.count) Place objects")
-        return places
     }
 
     /// Fallback search against hardcoded places (when no API key)
