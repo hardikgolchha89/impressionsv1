@@ -192,26 +192,42 @@ struct PlaceSelectionView: View {
     // Fetch Google Maps photos for popular places in parallel
     private func fetchPopularPhotos() async {
         guard AppConfig.isGooglePlacesConfigured else { return }
-        await withTaskGroup(of: (Int, URL?).self) { group in
-            for (index, place) in popularPlaces.enumerated() {
+
+        // Snapshot names/indices before entering the task group
+        let snapshot = popularPlaces.enumerated().map { ($0.offset, $0.element) }
+
+        let photos: [(Int, URL)] = await withTaskGroup(of: (Int, URL?).self) { group in
+            for (index, place) in snapshot {
                 group.addTask {
-                    let url = await placesService.fetchPhotoURLByName(place.name)
-                    return (index, url)
+                    // GooglePlacesAPI is not actor-isolated, so this runs truly concurrently
+                    do {
+                        let results = try await GooglePlacesAPI.autocomplete(query: place.name)
+                        guard let placeId = results.first?.googlePlaceId else { return (index, nil) }
+                        let url = try await GooglePlacesAPI.firstPhotoURL(placeId: placeId)
+                        return (index, url)
+                    } catch {
+                        return (index, nil)
+                    }
                 }
             }
+            var collected: [(Int, URL)] = []
             for await (index, url) in group {
-                if let url {
-                    let place = popularPlaces[index]
-                    popularPlaces[index] = Place(
-                        id: place.id,
-                        name: place.name,
-                        imageURL: place.imageURL,
-                        location: place.location,
-                        googlePlaceId: place.googlePlaceId,
-                        photoURL: url
-                    )
-                }
+                if let url { collected.append((index, url)) }
             }
+            return collected
+        }
+
+        // Apply results back on main actor
+        for (index, url) in photos {
+            let place = popularPlaces[index]
+            popularPlaces[index] = Place(
+                id: place.id,
+                name: place.name,
+                imageURL: place.imageURL,
+                location: place.location,
+                googlePlaceId: place.googlePlaceId,
+                photoURL: url
+            )
         }
     }
 
