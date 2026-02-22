@@ -22,9 +22,6 @@ struct ImpressionBuilder {
         author: AuthorModel
     ) -> ImpressionModel {
 
-        // Save cover photo to disk if available
-        let coverPath: String? = data.coverPhoto.flatMap { saveCoverPhoto($0) }
-
         // Create the impression
         let impression = ImpressionModel(
             createdAt: Date(),
@@ -32,9 +29,8 @@ struct ImpressionBuilder {
             placeName: data.place?.name ?? "Unknown Place",
             companions: formatCompanions(data.companions),
             occasion: data.meal?.rawValue ?? "Unknown",
-            priceRange: data.priceRange?.rawValue,
+            priceRange: nil, // TODO: Add price range if collected
             cardColorRawValue: randomCardColor(),
-            coverPhotoPath: coverPath,
             author: author
         )
 
@@ -82,10 +78,8 @@ struct ImpressionBuilder {
         startingSortOrder: inout Int
     ) -> [PhotoDataModel] {
         return photos.enumerated().map { index, image in
-            let savedPath = saveImageAndGetPath(image, index: index)
-            print("📸 Photo \(index): saved to \(savedPath)")
             let widget = PhotoDataModel(
-                imageUrl: savedPath,
+                imageUrl: saveImageAndGetPath(image, index: index),
                 caption: nil,
                 sortOrder: startingSortOrder
             )
@@ -227,28 +221,6 @@ struct ImpressionBuilder {
     /// Get random card color (alternates between pink and blue)
     private static func randomCardColor() -> String {
         Bool.random() ? "pink" : "blue"
-    }
-
-    /// Save cover photo to Documents directory and return absolute file path
-    private static func saveCoverPhoto(_ image: UIImage) -> String? {
-        let filename = "impression_cover_\(UUID().uuidString).jpg"
-
-        guard let documentsDirectory = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        ).first else { return nil }
-
-        let fileURL = documentsDirectory.appendingPathComponent(filename)
-
-        guard let imageData = image.jpegData(compressionQuality: 0.85) else { return nil }
-
-        do {
-            try imageData.write(to: fileURL)
-            return fileURL.path
-        } catch {
-            print("Failed to save cover photo: \(error)")
-            return nil
-        }
     }
 
     /// Save UIImage to Documents directory and return absolute file path

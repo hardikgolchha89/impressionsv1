@@ -22,103 +22,88 @@ struct FeedCardView: View {
     
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Cover Photo Banner (edge-to-edge, no padding)
-            if let coverPath = impression.coverPhotoPath,
-               !coverPath.isEmpty,
-               let uiImage = UIImage(contentsOfFile: coverPath) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 200)
-                    .clipped()
+            // Author Header
+            HStack(spacing: Spacing.sm) {
+                // Avatar
+                ZStack {
+                    Circle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 36, height: 36)
+                    
+                    Text(String(impression.author.name.prefix(1)).uppercased())
+                        .font(AppFont.author())
+                        .foregroundColor(.white)
+                }
+                
+                // Name + Timestamp
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(impression.author.name)
+                        .font(AppFont.author())
+                        .foregroundColor(.appDarkText)
+                    
+                    Text(impression.timeAgo)
+                        .font(AppFont.timestamp())
+                        .foregroundColor(.appGrayText)
+                }
+                
+                Spacer()
+                
+                // Price Range (if available)
+                if let priceRange = impression.priceRange {
+                    Text(priceRange)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.appDarkText)
+                }
             }
-
-            // Padded content below cover photo
-            VStack(alignment: .leading, spacing: 0) {
-                // Author Header
-                HStack(spacing: Spacing.sm) {
-                    // Avatar
-                    ZStack {
-                        Circle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 36, height: 36)
-
-                        Text(String(impression.author.name.prefix(1)).uppercased())
-                            .font(AppFont.author())
-                            .foregroundColor(.white)
+            .padding(.bottom, Spacing.lg)
+            
+            // Title
+            Text(impression.title)
+                .font(AppFont.title())
+                .foregroundColor(.appDarkText)
+                .lineLimit(3)
+                .padding(.bottom, Spacing.lg)
+            
+            // Metadata Section
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                MetadataRow(icon: "mappin.circle.fill", text: impression.placeName)
+                MetadataRow(icon: "person.2.fill", text: impression.companions)
+                MetadataRow(icon: "calendar", text: impression.occasion)
+            }
+            .padding(.bottom, Spacing.lg)
+            
+            // Preview Widgets (first 2)
+            if !impression.previewWidgets.isEmpty {
+                HStack(spacing: Spacing.md) {
+                    ForEach(Array(impression.previewWidgets.prefix(2))) { widget in
+                        widgetView(for: widget)
+                            .frame(maxWidth: .infinity)
                     }
-
-                    // Name + Timestamp
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(impression.author.name)
-                            .font(AppFont.author())
-                            .foregroundColor(.appDarkText)
-
-                        Text(impression.timeAgo)
-                            .font(AppFont.timestamp())
-                            .foregroundColor(.appGrayText)
-                    }
-
-                    Spacer()
-
-                    // Price Range (if available)
-                    if let priceRange = impression.priceRange {
-                        Text(priceRange)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.appDarkText)
+                    
+                    // If there's only 1 widget, add a placeholder for the second slot
+                    if impression.previewWidgets.count == 1 {
+                        WidgetPlaceholder()
+                            .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.bottom, Spacing.lg)
-
-                // Title
-                Text(impression.title)
-                    .font(AppFont.title())
+            }
+            
+            // Read Post Button
+            HStack(spacing: 6) {
+                Text("Read Post")
+                    .font(AppFont.button)
                     .foregroundColor(.appDarkText)
-                    .lineLimit(3)
-                    .padding(.bottom, Spacing.lg)
-
-                // Metadata Section
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    MetadataRow(icon: "mappin.circle.fill", text: impression.placeName)
-                    MetadataRow(icon: "person.2.fill", text: impression.companions)
-                    MetadataRow(icon: "calendar", text: impression.occasion)
-                }
-                .padding(.bottom, Spacing.lg)
-
-                // Preview Widgets (first 2)
-                if !impression.previewWidgets.isEmpty {
-                    HStack(spacing: Spacing.md) {
-                        ForEach(Array(impression.previewWidgets.prefix(2))) { widget in
-                            widgetView(for: widget)
-                                .frame(maxWidth: .infinity)
-                        }
-
-                        // If there's only 1 widget, add a placeholder for the second slot
-                        if impression.previewWidgets.count == 1 {
-                            WidgetPlaceholder()
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .padding(.bottom, Spacing.lg)
-                }
-
-                // Read Post Button
-                HStack(spacing: 6) {
-                    Text("Read Post")
-                        .font(AppFont.button)
-                        .foregroundColor(.appDarkText)
-
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.appDarkText)
-                }
-                .frame(maxWidth: .infinity)
+                
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.appDarkText)
             }
-            .padding(Spacing.xxl)
+            .frame(maxWidth: .infinity)
         }
+        .padding(Spacing.xxl)
         .background(impression.cardColor.color)
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.card))
+        .cornerRadius(CornerRadius.card)
         .shadow(
             color: Color.black.opacity(0.05),
             radius: 4,
