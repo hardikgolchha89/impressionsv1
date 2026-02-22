@@ -106,7 +106,7 @@ struct PhotoUploadView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .photosPicker(
             isPresented: Binding(
                 get: { selectedSlot != nil },
@@ -116,9 +116,9 @@ struct PhotoUploadView: View {
             matching: .images,
             photoLibrary: .shared()
         )
-        .onChange(of: selectedItem) { newItem in
+        .onChange(of: selectedItem) { oldValue, newValue in
             Task {
-                if let newItem = newItem, let slotIndex = selectedSlot {
+                if let newItem = newValue, let slotIndex = selectedSlot {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         // Resize image to max 1024x1024

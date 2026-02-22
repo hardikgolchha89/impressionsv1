@@ -134,8 +134,8 @@ struct CoverPhotoSelectionView: View {
                         .padding(.horizontal, Spacing.md)
                     }
                     .frame(height: 80)
-                    .onChange(of: selectedPhotoIndex) { newIndex in
-                        if let newIndex = newIndex {
+                    .onChange(of: selectedPhotoIndex) { oldValue, newValue in
+                        if let newIndex = newValue {
                             withAnimation {
                                 proxy.scrollTo(newIndex, anchor: .center)
                             }
@@ -163,7 +163,7 @@ struct CoverPhotoSelectionView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             // Auto-select first photo if available
             if uploadedPhotos.isEmpty {
@@ -178,9 +178,9 @@ struct CoverPhotoSelectionView: View {
             matching: .images,
             photoLibrary: .shared()
         )
-        .onChange(of: selectedItem) { newItem in
+        .onChange(of: selectedItem) { oldValue, newValue in
             Task {
-                if let newItem = newItem {
+                if let newItem = newValue {
                     if let data = try? await newItem.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
                         // Resize image to max 1024x1024

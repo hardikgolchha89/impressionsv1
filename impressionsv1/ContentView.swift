@@ -6,9 +6,17 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     @State private var showCreateFlow = false
+    @Query(sort: \ImpressionModel.createdAt, order: .reverse) var impressionModels: [ImpressionModel]
+    @Environment(UserManager.self) private var userManager
+
+    // Convert models to structs for display
+    private var impressions: [Impression] {
+        impressionModels.map { $0.asStruct }
+    }
     
     var body: some View {
         NavigationStack {
@@ -19,7 +27,7 @@ struct ContentView: View {
                         // Header Section
                         VStack(alignment: .leading, spacing: 4) {
                             // Greeting
-                            Text("Hello Taashi!")
+                            Text("Hello \(userManager.currentUser?.name ?? "there")!")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.appDarkText)
                             
@@ -48,8 +56,36 @@ struct ContentView: View {
                         
                         // Cards Section
                         VStack(spacing: Spacing.lg) {
-                            ForEach(MockData.allImpressions) { impression in
-                                FeedCardView(impression: impression)
+                            if impressions.isEmpty {
+                                // Empty state
+                                VStack(spacing: Spacing.md) {
+                                    Text("No impressions yet")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.appDarkText.opacity(0.6))
+
+                                    Text("Create your first impression!")
+                                        .font(.system(size: 14, weight: .regular))
+                                        .foregroundColor(.appDarkText.opacity(0.5))
+
+                                    Button(action: {
+                                        showCreateFlow = true
+                                    }) {
+                                        Text("Get Started")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 32)
+                                            .padding(.vertical, 12)
+                                            .background(Color.appPink)
+                                            .cornerRadius(CornerRadius.button)
+                                    }
+                                    .padding(.top, Spacing.sm)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 60)
+                            } else {
+                                ForEach(impressions) { impression in
+                                    FeedCardView(impression: impression)
+                                }
                             }
                         }
                         .padding(.horizontal, Spacing.lg)
@@ -96,7 +132,7 @@ struct ContentView: View {
                     .ignoresSafeArea(edges: .bottom)
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showCreateFlow) {
                 CreateImpressionFlowView()
             }

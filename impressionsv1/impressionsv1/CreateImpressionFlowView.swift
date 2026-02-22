@@ -6,10 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct CreateImpressionFlowView: View {
     @StateObject private var coordinator = CreateImpressionCoordinator()
-    
+    @Environment(UserManager.self) private var userManager
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -51,6 +55,7 @@ struct CreateImpressionFlowView: View {
                             onAnswerSaved: { answerText in
                                 coordinator.completePromptAnswer(
                                     promptId: prompt.id,
+                                    question: prompt.question,
                                     answerText: answerText
                                 )
                             },
@@ -68,7 +73,14 @@ struct CreateImpressionFlowView: View {
                     }
                 }
             }
-            .navigationBarHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            .onAppear {
+                coordinator.userManager = userManager
+                coordinator.modelContext = modelContext
+                coordinator.onPublishComplete = {
+                    dismiss()
+                }
+            }
         }
     }
 }

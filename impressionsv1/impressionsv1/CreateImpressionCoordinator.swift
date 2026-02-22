@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Combine
 
 // MARK: - Flow Steps
@@ -43,7 +44,12 @@ class CreateImpressionCoordinator: ObservableObject {
     @Published var currentStep: CreateFlowStep = .placeSelection
     @Published var data: ImpressionData = ImpressionData()
     @Published var navigationPath: [CreateFlowStep] = []
-    
+
+    // Dependencies (injected)
+    var userManager: UserManager?
+    var modelContext: ModelContext?
+    var onPublishComplete: (() -> Void)?
+
     // MARK: - Navigation Methods
     
     func start() {
@@ -104,14 +110,15 @@ class CreateImpressionCoordinator: ObservableObject {
         advance(to: .promptAnswer(prompt: prompt))
     }
     
-    func completePromptAnswer(promptId: UUID, answerText: String) {
+    func completePromptAnswer(promptId: UUID, question: String, answerText: String) {
         let answer = PromptAnswer(
             promptId: promptId,
+            question: question,
             answerText: answerText,
             timestamp: Date()
         )
         data.answeredPrompts[promptId] = answer
-        
+
         // Go back to prompt selection
         advance(to: .promptSelection)
     }
@@ -139,16 +146,48 @@ class CreateImpressionCoordinator: ObservableObject {
         advance(to: .publishSummary)
     }
     
-    func publish() {
-        // Save impression (mock for now)
-        print("Publishing impression:")
-        print("- Place: \(data.place?.name ?? "N/A")")
-        print("- Title: \(data.title)")
-        print("- Prompts answered: \(data.answeredPrompts.count)")
-        
-        // TODO: Navigate to feed or show success
-        // For now, just reset
-        start()
+    /// Saves the impression to SwiftData. Returns true on success.
+    /// Does NOT reset state or dismiss — the caller handles that.
+    @discardableResult
+    func publish() -> Bool {
+        guard let userManager = userManager,
+              let currentUser = userManager.currentUser,
+              let context = modelContext else {
+            print("❌ publish failed: missing dependencies")
+            return false
+        }
+
+        let impression = ImpressionBuilder.buildImpression(
+            from: data,
+            author: currentUser
+        )
+
+        // Insert into SwiftData (child objects need manual insertion)
+        context.insert(impression)
+        impression.photoWidgets?.forEach { context.insert($0) }
+        impression.quoteWidgets?.forEach { context.insert($0) }
+        impression.infoWidgets?.forEach { context.insert($0) }
+        impression.mapWidgets?.forEach { context.insert($0) }
+        impression.pairingWidgets?.forEach { context.insert($0) }
+
+        impression.foodGridWidgets?.forEach { foodGrid in
+            context.insert(foodGrid)
+            foodGrid.items?.forEach { context.insert($0) }
+        }
+
+        impression.orderListWidgets?.forEach { orderList in
+            context.insert(orderList)
+            orderList.allItems?.forEach { context.insert($0) }
+        }
+
+        do {
+            try context.save()
+            print("✅ Published: \(data.title)")
+            return true
+        } catch {
+            print("❌ Save failed: \(error)")
+            return false
+        }
     }
     
     // MARK: - Private Helpers

@@ -136,17 +136,21 @@ struct PublishSummaryView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
     
     // MARK: - Actions
     private func publishImpression() {
         isPublishing = true
-        
-        // Mock save (replace with real backend later)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+
+        let success = coordinator.publish()
+
+        if success {
+            // Dismiss the sheet — don't reset coordinator state here,
+            // it'll be recreated fresh next time the sheet opens (@StateObject)
+            coordinator.onPublishComplete?()
+        } else {
             isPublishing = false
-            coordinator.publish()
         }
     }
 }

@@ -22,11 +22,13 @@ struct Prompt: Identifiable, Equatable {
 
 struct PromptAnswer {
     let promptId: UUID
+    let question: String
     let answerText: String
     let timestamp: Date
-    
-    init(promptId: UUID, answerText: String, timestamp: Date = Date()) {
+
+    init(promptId: UUID, question: String, answerText: String, timestamp: Date = Date()) {
         self.promptId = promptId
+        self.question = question
         self.answerText = answerText
         self.timestamp = timestamp
     }
@@ -133,9 +135,9 @@ struct PromptSelectionView: View {
                     )
                     .padding(.horizontal, Spacing.md)
                     .padding(.top, Spacing.lg) // ~60pt from top (24 + 16 + 20)
-                    .onChange(of: selectedTab) { _ in
+                    .onChange(of: selectedTab) { oldValue, newValue in
                         withAnimation {
-                            proxy.scrollTo(selectedTab, anchor: .center)
+                            proxy.scrollTo(newValue, anchor: .center)
                         }
                     }
                 }
@@ -186,7 +188,7 @@ struct PromptSelectionView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
     }
 }
 

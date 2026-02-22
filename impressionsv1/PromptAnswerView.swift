@@ -67,7 +67,7 @@ struct PromptAnswerView: View {
                             TextEditor(text: $answerText)
                                 .font(AppFont.body)
                                 .foregroundColor(.textPrimary)
-                                .autocapitalization(.sentences)
+                                .textInputAutocapitalization(.sentences)
                                 .keyboardType(.default)
                                 .focused($isTextEditorFocused)
                                 .scrollContentBackground(.hidden)
@@ -111,7 +111,7 @@ struct PromptAnswerView: View {
                 .background(Color.appBackground)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             answerText = existingAnswer ?? ""
             // Auto-focus text editor
