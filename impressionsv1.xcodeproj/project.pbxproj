@@ -32,18 +32,8 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		569D80D52F373AD80086F502 /* impressionsv1 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CC020001CC020001CC020001 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
-			);
 			path = impressionsv1;
 			sourceTree = "<group>";
-		};
-		CC020001CC020001CC020001 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 569D80D22F373AD80086F502 /* impressionsv1 */;
 		};
 		569D80E52F373ADB0086F502 /* impressionsv1Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
