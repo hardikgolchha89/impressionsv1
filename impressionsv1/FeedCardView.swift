@@ -196,24 +196,34 @@ struct FeedCardView: View {
 
     @ViewBuilder
     private func widgetPreviewCard(widget: Widget, color: Color) -> some View {
-        let (title, body) = widgetContent(widget)
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.custom("HKGrotesk-SemiBold", size: 9))
-                .foregroundColor(.white.opacity(0.75))
-                .kerning(0.5)
-                .lineLimit(1)
+        if case .photo(let p) = widget.type,
+           let imageUrl = p.imageUrl, !imageUrl.isEmpty,
+           let uiImage = UIImage(named: imageUrl) ?? UIImage(contentsOfFile: imageUrl) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, minHeight: 90)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
+            let (title, body) = widgetContent(widget)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title.uppercased())
+                    .font(.custom("HKGrotesk-SemiBold", size: 9))
+                    .foregroundColor(.white.opacity(0.75))
+                    .kerning(0.5)
+                    .lineLimit(1)
 
-            Text(body)
-                .font(.custom("HKGrotesk-Regular", size: 13))
-                .foregroundColor(.white)
-                .lineLimit(3)
-                .lineSpacing(2)
+                Text(body)
+                    .font(.custom("HKGrotesk-Regular", size: 13))
+                    .foregroundColor(.white)
+                    .lineLimit(3)
+                    .lineSpacing(2)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 90, alignment: .topLeading)
+            .background(color)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 90, alignment: .topLeading)
-        .background(color)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func widgetContent(_ widget: Widget) -> (title: String, body: String) {

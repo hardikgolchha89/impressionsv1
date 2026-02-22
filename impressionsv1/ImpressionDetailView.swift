@@ -315,11 +315,10 @@ struct ImpressionDetailView: View {
                 let allItems = o.leftColumnItems + o.rightColumnItems
                 ForEach(Array(allItems.enumerated()), id: \.offset) { _, item in
                     Text(item.name)
-                        .font(.custom("HKGrotesk-Regular", size: 15))
+                        .font(.custom("Caveat-Medium", size: 19))
                         .foregroundColor(.appBrown)
-                        .italic()
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 4)
                 }
                 Spacer().frame(height: 12)
             }
@@ -351,11 +350,10 @@ struct ImpressionDetailView: View {
 
                 ForEach(Array(f.items.enumerated()), id: \.offset) { _, item in
                     Text(item.name)
-                        .font(.custom("HKGrotesk-Regular", size: 15))
+                        .font(.custom("Caveat-Medium", size: 19))
                         .foregroundColor(.appBrown)
-                        .italic()
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 4)
                 }
                 Spacer().frame(height: 12)
             }
