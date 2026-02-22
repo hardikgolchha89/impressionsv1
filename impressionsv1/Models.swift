@@ -9,6 +9,31 @@ import SwiftUI
 import SwiftData
 import Foundation
 
+// MARK: - Place (used in create flow + Google Places)
+
+struct Place: Identifiable, Equatable {
+    var id: String
+    var name: String
+    var location: String?
+    var cuisine: String?
+    // Google Places extras (optional)
+    var googlePlaceId: String?
+    var imageURL: String?
+    var photoURL: URL?
+
+    // Convenience init for static / seeded places
+    init(id: String = UUID().uuidString, name: String, location: String? = nil, cuisine: String? = nil,
+         googlePlaceId: String? = nil, imageURL: String? = nil, photoURL: URL? = nil) {
+        self.id            = id
+        self.name          = name
+        self.location      = location
+        self.cuisine       = cuisine
+        self.googlePlaceId = googlePlaceId
+        self.imageURL      = imageURL
+        self.photoURL      = photoURL
+    }
+}
+
 // MARK: - Impression Card Color (avoids conflict with DesignSystem.CardColor)
 enum ImpressionCardColor {
     case pink
@@ -50,10 +75,12 @@ enum WidgetType {
 struct Widget: Identifiable {
     let id: String
     let type: WidgetType
-    
-    init(id: String = UUID().uuidString, type: WidgetType) {
+    let gridSize: WidgetGridSize
+
+    init(id: String = UUID().uuidString, type: WidgetType, gridSize: WidgetGridSize? = nil) {
         self.id = id
         self.type = type
+        self.gridSize = gridSize ?? type.defaultGridSize
     }
 }
 
@@ -106,14 +133,19 @@ final class AuthorModel {
     @Attribute(.unique) var id: String
     var name: String
     var profileImageUrl: String?
+    var phoneNumber: String?
+    /// Whether this user has completed the onboarding flow
+    var isOnboarded: Bool
 
     @Relationship(deleteRule: .cascade, inverse: \ImpressionModel.author)
     var impressions: [ImpressionModel]?
 
-    init(id: String = UUID().uuidString, name: String, profileImageUrl: String? = nil) {
+    init(id: String = UUID().uuidString, name: String, profileImageUrl: String? = nil, phoneNumber: String? = nil, isOnboarded: Bool = false) {
         self.id = id
         self.name = name
         self.profileImageUrl = profileImageUrl
+        self.phoneNumber = phoneNumber
+        self.isOnboarded = isOnboarded
         self.impressions = []
     }
 
@@ -130,15 +162,17 @@ final class PhotoDataModel {
     var imageUrl: String?
     var caption: String?
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(inverse: \ImpressionModel.photoWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, imageUrl: String? = nil, caption: String? = nil, sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, imageUrl: String? = nil, caption: String? = nil, sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.imageUrl = imageUrl
         self.caption = caption
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 }
 
@@ -149,15 +183,17 @@ final class QuoteDataModel {
     var prompt: String
     var answer: String
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(inverse: \ImpressionModel.quoteWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, prompt: String, answer: String, sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, prompt: String, answer: String, sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.prompt = prompt
         self.answer = answer
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 }
 
@@ -169,16 +205,18 @@ final class InfoDataModel {
     var content: String
     var icon: String?
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(inverse: \ImpressionModel.infoWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, title: String? = nil, content: String, icon: String? = nil, sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, title: String? = nil, content: String, icon: String? = nil, sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.title = title
         self.content = content
         self.icon = icon
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 }
 
@@ -191,17 +229,19 @@ final class MapDataModel {
     var latitude: Double?
     var longitude: Double?
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(inverse: \ImpressionModel.mapWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, placeName: String, address: String, latitude: Double? = nil, longitude: Double? = nil, sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, placeName: String, address: String, latitude: Double? = nil, longitude: Double? = nil, sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.placeName = placeName
         self.address = address
         self.latitude = latitude
         self.longitude = longitude
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 }
 
@@ -227,6 +267,7 @@ final class FoodItemModel {
 final class FoodGridDataModel {
     @Attribute(.unique) var id: String
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(deleteRule: .cascade)
     var items: [FoodItemModel]?
@@ -234,10 +275,11 @@ final class FoodGridDataModel {
     @Relationship(inverse: \ImpressionModel.foodGridWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, items: [FoodItemModel] = [], sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, items: [FoodItemModel] = [], sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.items = items
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 }
 
@@ -264,6 +306,7 @@ final class OrderListDataModel {
     @Attribute(.unique) var id: String
     var title: String
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(deleteRule: .cascade)
     var allItems: [OrderItemModel]?
@@ -271,11 +314,12 @@ final class OrderListDataModel {
     @Relationship(inverse: \ImpressionModel.orderListWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, title: String, allItems: [OrderItemModel] = [], sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, title: String, allItems: [OrderItemModel] = [], sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.title = title
         self.allItems = allItems
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 
     /// Get items for left column
@@ -297,16 +341,18 @@ final class PairingDataModel {
     var location: String
     var imageUrl: String?
     var sortOrder: Int
+    var gridSizeRawValue: String?
 
     @Relationship(inverse: \ImpressionModel.pairingWidgets)
     var impression: ImpressionModel?
 
-    init(id: String = UUID().uuidString, placeName: String, location: String, imageUrl: String? = nil, sortOrder: Int = 0) {
+    init(id: String = UUID().uuidString, placeName: String, location: String, imageUrl: String? = nil, sortOrder: Int = 0, gridSizeRawValue: String? = nil) {
         self.id = id
         self.placeName = placeName
         self.location = location
         self.imageUrl = imageUrl
         self.sortOrder = sortOrder
+        self.gridSizeRawValue = gridSizeRawValue
     }
 }
 
@@ -408,52 +454,58 @@ final class ImpressionModel {
         Array(allWidgets.prefix(2))
     }
 
-    /// Get all widgets sorted by sortOrder
+    /// Get all widgets sorted by sortOrder, with grid sizes
     var allWidgets: [Widget] {
-        var widgets: [Widget] = []
+        // Collect (Widget, sortOrder) tuples so we can actually sort
+        var entries: [(widget: Widget, sortOrder: Int)] = []
 
-        // Add all widgets with their sort order
         photoWidgets?.forEach { model in
             let data = PhotoData(id: model.id, imageUrl: model.imageUrl, caption: model.caption)
-            widgets.append(Widget(id: model.id, type: .photo(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .photo(data), gridSize: gs), model.sortOrder))
         }
 
         quoteWidgets?.forEach { model in
             let data = QuoteData(id: model.id, prompt: model.prompt, answer: model.answer)
-            widgets.append(Widget(id: model.id, type: .quote(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .quote(data), gridSize: gs), model.sortOrder))
         }
 
         infoWidgets?.forEach { model in
             let data = InfoData(id: model.id, title: model.title, content: model.content, icon: model.icon)
-            widgets.append(Widget(id: model.id, type: .info(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .info(data), gridSize: gs), model.sortOrder))
         }
 
         mapWidgets?.forEach { model in
             let data = MapData(id: model.id, placeName: model.placeName, address: model.address, latitude: model.latitude, longitude: model.longitude)
-            widgets.append(Widget(id: model.id, type: .map(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .map(data), gridSize: gs), model.sortOrder))
         }
 
         foodGridWidgets?.forEach { model in
             let items = model.items?.map { FoodItem(id: $0.id, name: $0.name, imageName: $0.imageName) } ?? []
             let data = FoodGridData(id: model.id, items: items)
-            widgets.append(Widget(id: model.id, type: .foodGrid(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .foodGrid(data), gridSize: gs), model.sortOrder))
         }
 
         orderListWidgets?.forEach { model in
             let leftItems = model.leftColumnItems.map { OrderItem(id: $0.id, name: $0.name) }
             let rightItems = model.rightColumnItems.map { OrderItem(id: $0.id, name: $0.name) }
             let data = OrderListData(id: model.id, title: model.title, leftColumnItems: leftItems, rightColumnItems: rightItems)
-            widgets.append(Widget(id: model.id, type: .orderList(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .orderList(data), gridSize: gs), model.sortOrder))
         }
 
         pairingWidgets?.forEach { model in
             let data = PairingWidgetData(id: model.id, placeName: model.placeName, location: model.location, imageUrl: model.imageUrl)
-            widgets.append(Widget(id: model.id, type: .pairing(data)))
+            let gs = model.gridSizeRawValue.flatMap { WidgetGridSize(rawValue: $0) }
+            entries.append((Widget(id: model.id, type: .pairing(data), gridSize: gs), model.sortOrder))
         }
 
-        // Sort by the sort order stored in each widget model
-        // For now, return in the order they were added
-        return widgets
+        // Sort by sortOrder and return just the widgets
+        return entries.sorted { $0.sortOrder < $1.sortOrder }.map(\.widget)
     }
 
     /// Convert to struct for use in views

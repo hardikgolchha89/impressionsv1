@@ -25,23 +25,23 @@ struct QuoteWidget: View {
     let quote: QuoteData
     
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            // Question/Prompt
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            // Question/Prompt — thin, smaller
             Text(quote.prompt)
-                .font(.system(size: 15, weight: .regular))
-                .foregroundColor(.appDarkText)
+                .font(.custom("HKGrotesk-Light", size: 11))
+                .foregroundColor(.appDarkText.opacity(0.75))
                 .lineLimit(3)
-                .lineSpacing(1.2)
-            
-            // Answer Text
+                .lineSpacing(2)
+
+            // Answer Text — bold contrast
             Text(quote.answer)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.custom("HKGrotesk-SemiBold", size: 12))
                 .foregroundColor(.appDarkText)
                 .lineLimit(4)
-                .lineSpacing(1.3)
+                .lineSpacing(2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(16)
+        .padding(14)
         .background(Color.appYellow)
         .cornerRadius(CornerRadius.widget)
     }

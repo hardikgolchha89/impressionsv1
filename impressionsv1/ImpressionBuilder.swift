@@ -27,7 +27,7 @@ struct ImpressionBuilder {
             createdAt: Date(),
             title: data.title,
             placeName: data.place?.name ?? "Unknown Place",
-            companions: formatCompanions(data.companions),
+            companions: data.companions.isEmpty ? "Unknown" : data.companions,
             occasion: data.meal?.rawValue ?? "Unknown",
             priceRange: nil, // TODO: Add price range if collected
             cardColorRawValue: randomCardColor(),
@@ -199,24 +199,6 @@ struct ImpressionBuilder {
     }
 
     // MARK: - Helper Methods
-
-    /// Format companions set into a readable string
-    private static func formatCompanions(_ companions: Set<CompanionType>) -> String {
-        if companions.isEmpty {
-            return "Unknown"
-        }
-
-        let names = companions.map { $0.rawValue }
-
-        if names.count == 1 {
-            return names.first!
-        } else if names.count == 2 {
-            return names.joined(separator: " & ")
-        } else {
-            let allButLast = names.dropLast().joined(separator: ", ")
-            return "\(allButLast) & \(names.last!)"
-        }
-    }
 
     /// Get random card color (alternates between pink and blue)
     private static func randomCardColor() -> String {

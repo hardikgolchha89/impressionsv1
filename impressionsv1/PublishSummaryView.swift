@@ -24,15 +24,12 @@ struct PublishSummaryView: View {
     private var summaryItems: [SummaryItem] {
         let title = coordinator.data.title
         let titleDetail = String(title.prefix(40)) + (title.count > 40 ? "..." : "")
-        
-        // Get actual prompt questions from coordinator if available
-        // For now, use placeholder approach - we'll need to store prompts in coordinator
-        let promptQuestionsList: [String] = [
-            "What did you notice that most people wouldn't?",
-            "Did they do anything technical really well or really poorly?",
-            "How did they greet you and get you seated?"
-        ]
-        
+
+        // Pull real answered prompt questions
+        let answeredPromptsList: [String] = coordinator.data.answeredPrompts.values
+            .sorted(by: { $0.timestamp < $1.timestamp })
+            .map { $0.question }
+
         return [
             SummaryItem(
                 label: "Cover photo",
@@ -62,7 +59,7 @@ struct PublishSummaryView: View {
                 label: "Questions answered",
                 detail: "\(coordinator.data.answeredPrompts.count) prompts",
                 isComplete: coordinator.data.answeredPrompts.count >= 3,
-                prompts: coordinator.data.answeredPrompts.count >= 3 ? promptQuestionsList : nil
+                prompts: answeredPromptsList.isEmpty ? nil : answeredPromptsList
             )
         ]
     }

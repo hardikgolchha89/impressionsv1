@@ -1,8 +1,6 @@
 //
 //  CreateImpressionFlowView.swift
-//  Impressions
-//
-//  Main container view for the create impression flow
+//  impressionsv1
 //
 
 import SwiftUI
@@ -15,72 +13,45 @@ struct CreateImpressionFlowView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.appBackground
-                    .ignoresSafeArea()
-                
-                // Switch between screens based on current step
-                Group {
-                    switch coordinator.currentStep {
-                    case .placeSelection:
-                        PlaceSelectionView(coordinator: coordinator)
-                        
-                    case .mealSelection:
-                        MealSelectionView(coordinator: coordinator)
-                        
-                    case .companionsSelection:
-                        CompanionsSelectionView(coordinator: coordinator)
-                        
-                    case .timeSelection:
-                        TimeSelectionView(coordinator: coordinator)
-                        
-                    case .vibeSelection:
-                        VibeSelectionView(coordinator: coordinator)
-                        
-                    case .foodOrder:
-                        FoodOrderView(coordinator: coordinator)
-                        
-                    case .photoUpload:
-                        PhotoUploadView(coordinator: coordinator)
-                        
-                    case .promptSelection:
-                        PromptSelectionView(coordinator: coordinator)
-                        
-                    case .promptAnswer(let prompt):
-                        PromptAnswerView(
-                            prompt: prompt,
-                            answeredCount: coordinator.data.answeredPrompts.count,
-                            existingAnswer: coordinator.data.answeredPrompts[prompt.id]?.answerText,
-                            onAnswerSaved: { answerText in
-                                coordinator.completePromptAnswer(
-                                    promptId: prompt.id,
-                                    question: prompt.question,
-                                    answerText: answerText
-                                )
-                            },
-                            onBack: { coordinator.goBack() }
-                        )
-                        
-                    case .coverPhotoSelection:
-                        CoverPhotoSelectionView(coordinator: coordinator)
-                        
-                    case .titleCustomization:
-                        TitleCustomizationView(coordinator: coordinator)
-                        
-                    case .publishSummary:
-                        PublishSummaryView(coordinator: coordinator)
-                    }
+        ZStack {
+            Color.appCream.ignoresSafeArea()
+
+            Group {
+                switch coordinator.currentStep {
+                case .placeSelection:
+                    PlaceSelectionView(coordinator: coordinator)
+
+                case .conversational:
+                    ConversationalFlowView(coordinator: coordinator)
+
+                case .foodOrder:
+                    FoodOrderView(coordinator: coordinator)
+
+                case .widgetBuilder:
+                    WidgetBuilderView(coordinator: coordinator)
+
+                case .preview:
+                    ImpressionPreviewView(coordinator: coordinator)
+
+                case .publishSuccess:
+                    PublishSuccessView(coordinator: coordinator)
+
+                // Legacy steps — should not be reached in new flow
+                default:
+                    PlaceSelectionView(coordinator: coordinator)
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
-            .onAppear {
-                coordinator.userManager = userManager
-                coordinator.modelContext = modelContext
-                coordinator.onPublishComplete = {
-                    dismiss()
-                }
-            }
+            .transition(.asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal:   .move(edge: .leading).combined(with: .opacity)
+            ))
+            .id(coordinator.currentStep)
+            .animation(.easeInOut(duration: 0.28), value: coordinator.currentStep)
+        }
+        .onAppear {
+            coordinator.userManager = userManager
+            coordinator.modelContext = modelContext
+            coordinator.onPublishComplete = { dismiss() }
         }
     }
 }

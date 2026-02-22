@@ -20,7 +20,7 @@ struct TitleCustomizationView: View {
     private func generateTitle() -> String {
         if let place = coordinator.data.place,
            let meal = coordinator.data.meal {
-            let companionText = coordinator.data.companions.first?.rawValue.lowercased() ?? "friends"
+            let companionText = coordinator.data.companions.isEmpty ? "friends" : coordinator.data.companions.lowercased()
             return "\(meal.rawValue) with \(companionText) at \(place.name), \(place.location ?? "")"
         }
         return ""

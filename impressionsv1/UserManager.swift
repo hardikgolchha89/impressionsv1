@@ -15,47 +15,65 @@ class UserManager {
     private(set) var currentUser: AuthorModel?
     private var modelContext: ModelContext?
 
-    init() {
-        // Context will be injected after init
+    init() {}
+
+    // MARK: - Computed
+
+    /// True once the user has finished onboarding
+    var isOnboarded: Bool {
+        currentUser?.isOnboarded ?? false
     }
 
-    /// Load or create the current user
-    /// Call this once during app startup with the model context
-    func loadOrCreateUser(context: ModelContext) {
-        self.modelContext = context
-
-        // Try to fetch existing user
-        let descriptor = FetchDescriptor<AuthorModel>()
-        if let existingUsers = try? context.fetch(descriptor),
-           let firstUser = existingUsers.first {
-            currentUser = firstUser
-            print("✅ Loaded existing user: \(firstUser.name)")
-        } else {
-            // Create default user
-            let newUser = AuthorModel(
-                name: "You",
-                profileImageUrl: nil
-            )
-            context.insert(newUser)
-            try? context.save()
-            currentUser = newUser
-            print("✅ Created new user: \(newUser.name)")
-        }
-    }
-
-    /// Update the user's profile
-    func updateProfile(name: String, profileImageUrl: String?) {
-        guard let user = currentUser, let context = modelContext else { return }
-
-        user.name = name
-        user.profileImageUrl = profileImageUrl
-
-        try? context.save()
-        print("✅ Updated user profile: \(name)")
-    }
-
-    /// Check if user is loaded
     var hasUser: Bool {
         currentUser != nil
+    }
+
+    // MARK: - Boot
+
+    /// Call once at app startup. Loads an existing user if one exists.
+    /// New users (no record found) will be sent through onboarding.
+    func loadExistingUser(context: ModelContext) {
+        self.modelContext = context
+        let descriptor = FetchDescriptor<AuthorModel>()
+        if let users = try? context.fetch(descriptor), let first = users.first {
+            currentUser = first
+            print("✅ Loaded user: \(first.name), onboarded=\(first.isOnboarded)")
+        }
+        // No user found → onboarding will create one
+    }
+
+    // MARK: - Onboarding
+
+    /// Creates the user record during sign-up (name + phone).
+    func createUser(name: String, phoneNumber: String, context: ModelContext) {
+        self.modelContext = context
+        let user = AuthorModel(name: name, phoneNumber: phoneNumber, isOnboarded: false)
+        context.insert(user)
+        try? context.save()
+        currentUser = user
+        print("✅ Created user during onboarding: \(name)")
+    }
+
+    /// Marks onboarding complete and saves.
+    func completeOnboarding() {
+        guard let user = currentUser, let context = modelContext else { return }
+        user.isOnboarded = true
+        try? context.save()
+        print("✅ Onboarding complete for \(user.name)")
+    }
+
+    // MARK: - Profile
+
+    func updateProfile(name: String, profileImageUrl: String?) {
+        guard let user = currentUser, let context = modelContext else { return }
+        user.name = name
+        user.profileImageUrl = profileImageUrl
+        try? context.save()
+    }
+
+    // MARK: - Legacy shim (keeps CreateImpressionCoordinator working)
+
+    func loadOrCreateUser(context: ModelContext) {
+        loadExistingUser(context: context)
     }
 }

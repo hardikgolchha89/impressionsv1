@@ -25,41 +25,46 @@ struct PhotoWidget: View {
     let photo: PhotoData
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Photo or Placeholder
+        ZStack(alignment: .bottomLeading) {
+            // Photo or Placeholder — fills the grid cell
             if let imageUrl = photo.imageUrl, !imageUrl.isEmpty,
                let uiImage = UIImage(contentsOfFile: imageUrl) {
-                // Load image from file path
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(1, contentMode: .fill)
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.image))
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
             } else {
-                // Placeholder (shown if no image or file doesn't exist)
                 photoPlaceholder
             }
 
-            // Caption (if provided)
-            if let caption = photo.caption {
+            // Caption overlay (if provided)
+            if let caption = photo.caption, !caption.isEmpty {
                 Text(caption)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.appDarkText)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white)
                     .lineLimit(2)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .padding(8)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.gray.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.image, style: .continuous))
     }
 
     // MARK: - Placeholder View
     private var photoPlaceholder: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: CornerRadius.image)
-                .fill(Color.gray.opacity(0.3))
-
+            Color.gray.opacity(0.3)
             Image(systemName: "photo")
                 .font(.system(size: 32))
                 .foregroundColor(.gray)
         }
-        .aspectRatio(1, contentMode: .fit)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

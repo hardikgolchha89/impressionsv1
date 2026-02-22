@@ -2,232 +2,234 @@
 //  PlaceSelectionView.swift
 //  impressionsv1
 //
-//  Created by Hardik Golchha on 07/02/26.
-//
 
 import SwiftUI
 
-// MARK: - Data Model
-struct Place: Identifiable {
-    let id: UUID
-    let name: String
-    let imageURL: String
-    let location: String?
-    
-    init(id: UUID = UUID(), name: String, imageURL: String, location: String? = nil) {
-        self.id = id
-        self.name = name
-        self.imageURL = imageURL
-        self.location = location
-    }
-}
-
-// MARK: - View
 struct PlaceSelectionView: View {
     @ObservedObject var coordinator: CreateImpressionCoordinator
+    @StateObject private var placesService = GooglePlacesService()
+    @State private var searchText = ""
     @State private var selectedPlace: Place? = nil
-    @State private var searchText: String = ""
-    
-    // Sample data with SF Symbol placeholders
-    private let samplePlaces: [Place] = [
-        Place(name: "The Bombay Canteen", imageURL: "fork.knife"),
-        Place(name: "Lake View Cafe", imageURL: "cup.and.saucer.fill"),
-        Place(name: "Bastian - At the Top", imageURL: "building.2.fill"),
-        Place(name: "Boneto Fine Dine", imageURL: "wineglass.fill"),
-        Place(name: "Bandra Born", imageURL: "sparkles"),
-        Place(name: "Nksha", imageURL: "leaf.fill"),
-        Place(name: "Tanatan Shivaji Park", imageURL: "flame.fill"),
-        Place(name: "Delhi Darbar", imageURL: "building.fill"),
-        Place(name: "Kyani & Co.", imageURL: "cup.and.saucer"),
-        Place(name: "Submit New Restaurants Here", imageURL: "plus.circle.fill")
+    @State private var isTyping = false
+
+    private let popularPlaces: [Place] = [
+        Place(id: "1", name: "The Bombay Canteen",  location: "Lower Parel", cuisine: "Modern Indian"),
+        Place(id: "2", name: "Bastian",             location: "Bandra",      cuisine: "Seafood & Grill"),
+        Place(id: "3", name: "Trishna",             location: "Fort",        cuisine: "Coastal Seafood"),
+        Place(id: "4", name: "Burma Burma",         location: "Fort",        cuisine: "Burmese"),
+        Place(id: "5", name: "Pali Village Cafe",   location: "Bandra",      cuisine: "All Day Cafe"),
+        Place(id: "6", name: "Social Worli",        location: "Worli",       cuisine: "Bar & Kitchen"),
+        Place(id: "7", name: "Masque",              location: "Mahalaxmi",   cuisine: "Progressive Indian"),
+        Place(id: "8", name: "Cafe Mondegar",       location: "Colaba",      cuisine: "Continental"),
     ]
-    
-    // Filtered places based on search
-    private var filteredPlaces: [Place] {
-        let places: [Place]
-        if searchText.isEmpty {
-            places = samplePlaces
-        } else {
-            places = samplePlaces.filter { place in
-                place.name.localizedCaseInsensitiveContains(searchText)
-            }
-            // Always include "Submit New Restaurants" option even when searching
-            let submitOption = samplePlaces.last!
-            if !places.contains(where: { $0.id == submitOption.id }) {
-                return places + [submitOption]
-            }
+
+    /// What to display: live results if search is active, else popular list
+    private var displayedPlaces: [Place] {
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return popularPlaces
         }
-        return places
+        if !placesService.searchResults.isEmpty {
+            return placesService.searchResults
+        }
+        // Fallback local filter while waiting for API
+        return popularPlaces.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            ($0.location ?? "").localizedCaseInsensitiveContains(searchText)
+        }
     }
-    
-    // Grid columns configuration
-    private let columns = [
-        GridItem(.flexible(), spacing: Spacing.sm),
-        GridItem(.flexible(), spacing: Spacing.sm),
-        GridItem(.flexible(), spacing: Spacing.sm)
-    ]
-    
+
+    private var sectionLabel: String {
+        searchText.trimmingCharacters(in: .whitespaces).isEmpty
+            ? "POPULAR NEAR YOU"
+            : (placesService.isSearching ? "SEARCHING…" : "RESULTS")
+    }
+
     var body: some View {
         ZStack {
-            Color.appBackground
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header Section
-                VStack(spacing: 0) {
-                    HStack {
-                        // Back button
-                        Button(action: {
-                            coordinator.goBack()
-                        }) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.textPrimary)
-                                .frame(width: 44, height: 44)
-                        }
-                        
-                        Spacer()
-                        
-                        // Title
-                        Text("Where did you go?")
-                            .font(AppFont.title2)
-                            .foregroundColor(.textPrimary)
-                        
-                        Spacer()
-                        
-                        // Balance spacing
-                        Color.clear
-                            .frame(width: 44, height: 44)
+            Color.appCream.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+
+                // ── Header ─────────────────────────────────────────────
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("NEW IMPRESSION")
+                        .font(.custom("HKGrotesk-SemiBold", size: 11))
+                        .foregroundColor(.appOlive)
+                        .kerning(0.8)
+
+                    HStack(spacing: 6) {
+                        Text("Where did you eat?")
+                            .font(.custom("HKGrotesk-Bold", size: 28))
+                            .foregroundColor(.appBrown)
+                        Text("📍")
+                            .font(.system(size: 24))
                     }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.top, Spacing.xs)
-                    
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.textTertiary)
-                            .padding(.leading, Spacing.sm)
-                        
-                        TextField("Search", text: $searchText)
-                            .font(AppFont.body)
-                            .foregroundColor(.textPrimary)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        
-                        if !searchText.isEmpty {
-                            Button(action: {
-                                searchText = ""
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.textTertiary)
-                                    .padding(.trailing, Spacing.sm)
-                            }
-                        }
-                    }
-                    .frame(height: 44)
-                    .background(Color.cardBackground)
-                    .cornerRadius(CornerRadius.medium)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.top, Spacing.md)
+
+                    Text("Search any restaurant, dhaba, or café you visited.")
+                        .font(.custom("HKGrotesk-Regular", size: 14))
+                        .foregroundColor(.appBrown.opacity(0.6))
                 }
-                
-                // Place Grid
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 20)
+
+                // ── Search bar ─────────────────────────────────────────
+                HStack(spacing: 10) {
+                    if placesService.isSearching {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .tint(Color.appBrown.opacity(0.4))
+                            .frame(width: 15, height: 15)
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15))
+                            .foregroundColor(.appBrown.opacity(0.4))
+                    }
+
+                    TextField("Search restaurant, area...", text: $searchText)
+                        .font(.custom("HKGrotesk-Regular", size: 15))
+                        .foregroundColor(.appBrown)
+                        .autocorrectionDisabled()
+                        .onChange(of: searchText) { _, newValue in
+                            placesService.search(query: newValue)
+                        }
+
+                    if !searchText.isEmpty {
+                        Button {
+                            searchText = ""
+                            placesService.clear()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.appBrown.opacity(0.3))
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.appOffWhite)
+                )
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+
+                // ── Section label ──────────────────────────────────────
+                Text(sectionLabel)
+                    .font(.custom("HKGrotesk-SemiBold", size: 11))
+                    .foregroundColor(.appBrown.opacity(0.4))
+                    .kerning(0.8)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+                    .animation(.easeInOut(duration: 0.15), value: sectionLabel)
+
+                // ── Place list ─────────────────────────────────────────
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: Spacing.sm) {
-                        ForEach(filteredPlaces) { place in
-                            PlaceCard(
-                                place: place,
-                                isSelected: selectedPlace?.id == place.id
-                            ) {
-                                // Toggle selection
-                                if selectedPlace?.id == place.id {
-                                    selectedPlace = nil
-                                } else {
-                                    selectedPlace = place
+                    if displayedPlaces.isEmpty && !placesService.isSearching && !searchText.isEmpty {
+                        // No results state
+                        VStack(spacing: 12) {
+                            Image(systemName: "fork.knife.circle")
+                                .font(.system(size: 36))
+                                .foregroundColor(.appBrown.opacity(0.2))
+                            Text("No places found for \"\(searchText)\"")
+                                .font(.custom("HKGrotesk-Regular", size: 14))
+                                .foregroundColor(.appBrown.opacity(0.4))
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 40)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(displayedPlaces) { place in
+                                PlaceRow(
+                                    place: place,
+                                    isSelected: selectedPlace?.id == place.id
+                                ) {
+                                    withAnimation(.spring(duration: 0.2)) {
+                                        selectedPlace = place
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                        coordinator.completePlace(place)
+                                    }
+                                }
+
+                                if place.id != displayedPlaces.last?.id {
+                                    Divider()
+                                        .background(Color.appBrown.opacity(0.08))
+                                        .padding(.leading, 20)
                                 }
                             }
                         }
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.top, Spacing.md)
-                    .padding(.bottom, Spacing.xl)
-                }
-                
-                // Continue Button (reserve space to prevent grid shift)
-                VStack {
-                    if let place = selectedPlace {
-                        Button(action: {
-                            coordinator.completePlace(place: place)
-                        }) {
-                            Text("Continue")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .primaryButton()
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.bottom, Spacing.md)
-                        .transition(.opacity)
-                    } else {
-                        // Invisible spacer to maintain layout
-                        Color.clear
-                            .frame(height: 60)
-                            .padding(.bottom, Spacing.md)
+                        .background(Color.appOffWhite)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .padding(.horizontal, 20)
                     }
                 }
-                .background(Color.appBackground)
+
+                // ── Maps attribution ───────────────────────────────────
+                HStack {
+                    Image(systemName: "map")
+                        .font(.system(size: 11))
+                        .foregroundColor(.appBrown.opacity(0.35))
+                    Text("Powered by Google Maps · Any place worldwide")
+                        .font(.custom("HKGrotesk-Regular", size: 11))
+                        .foregroundColor(.appBrown.opacity(0.35))
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
     }
 }
 
-// MARK: - Place Card Component
-struct PlaceCard: View {
+// MARK: - Place row
+
+private struct PlaceRow: View {
     let place: Place
     let isSelected: Bool
     let onTap: () -> Void
-    
-    var body: some View {
-        VStack(spacing: Spacing.xs) {
-            ZStack(alignment: .topTrailing) {
-                // Image
-                Image(systemName: place.imageURL)
-                    .font(.system(size: 40))
-                    .foregroundColor(.textSecondary)
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
-                    .background(Color.cardBackground)
-                    .cornerRadius(CornerRadius.large)
-                
-                // Selection checkmark
-                if isSelected {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .fill(Color.white)
-                            .frame(width: 30, height: 30)
-                        
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.black)
-                    }
-                    .padding(8)
-                }
-            }
-            
-            // Name label
-            Text(place.name)
-                .font(AppFont.bodySmall)
-                .foregroundColor(.textPrimary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onTap()
-        }
-    }
-}
 
-#Preview {
-    PlaceSelectionView(coordinator: CreateImpressionCoordinator())
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 14) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Color.appOlive.opacity(0.15) : Color.appGreige.opacity(0.35))
+                    .frame(width: 40, height: 40)
+                    .overlay(
+                        Image(systemName: "fork.knife")
+                            .font(.system(size: 15))
+                            .foregroundColor(isSelected ? .appOlive : .appBrown.opacity(0.4))
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(place.name)
+                        .font(.custom("HKGrotesk-SemiBold", size: 15))
+                        .foregroundColor(.appBrown)
+                    HStack(spacing: 4) {
+                        if let loc = place.location, !loc.isEmpty {
+                            Text(loc)
+                            if let cuisine = place.cuisine, !cuisine.isEmpty {
+                                Text("·")
+                                Text(cuisine)
+                            }
+                        } else if let cuisine = place.cuisine, !cuisine.isEmpty {
+                            Text(cuisine)
+                        }
+                    }
+                    .font(.custom("HKGrotesk-Regular", size: 12))
+                    .foregroundColor(.appBrown.opacity(0.5))
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.appBrown.opacity(0.25))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(isSelected ? Color.appOlive.opacity(0.07) : Color.clear)
+        }
+        .buttonStyle(.plain)
+    }
 }

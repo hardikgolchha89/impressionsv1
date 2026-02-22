@@ -14,7 +14,7 @@ struct MapData: Identifiable {
     let address: String
     let latitude: Double?
     let longitude: Double?
-    
+
     init(id: String = UUID().uuidString, placeName: String, address: String, latitude: Double? = nil, longitude: Double? = nil) {
         self.id = id
         self.placeName = placeName
@@ -27,35 +27,35 @@ struct MapData: Identifiable {
 // MARK: - MapWidget View
 struct MapWidget: View {
     let map: MapData
-    
+
     var body: some View {
-        VStack(alignment: .center, spacing: 0) {
-            // Map pin icon
+        VStack(alignment: .center, spacing: Spacing.xs) {
             Image(systemName: "mappin.circle.fill")
-                .font(.system(size: 32))
+                .font(.system(size: 24))
                 .foregroundColor(.white)
-                .padding(.bottom, 8)
-            
-            // Place name + address (combined)
-            Text("\(map.placeName)\n\(map.address)")
-                .font(.system(size: 14, weight: .semibold))
+
+            Text(map.placeName)
+                .font(.custom("HKGrotesk-SemiBold", size: 12))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-                .lineSpacing(0.8)
-                .lineLimit(3)
-                .padding(.bottom, 10)
-            
-            // Action link
+                .lineLimit(2)
+
+            Text(map.address)
+                .font(.custom("HKGrotesk-Light", size: 11))
+                .foregroundColor(.white.opacity(0.8))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+
             Text("See places nearby →")
-                .font(.system(size: 11, weight: .medium))
+                .font(.custom("HKGrotesk-Light", size: 10))
                 .italic()
-                .foregroundColor(.white)
+                .foregroundColor(.white.opacity(0.7))
+                .padding(.top, 2)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.appBlue)
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -65,17 +65,13 @@ struct MapWidget: View {
         MapWidget(map: MapData(
             id: "1",
             placeName: "Kamala Mills",
-            address: "Compound, Lower Parel, Mumbai",
-            latitude: nil,
-            longitude: nil
+            address: "Compound, Lower Parel, Mumbai"
         ))
-        
+
         MapWidget(map: MapData(
             id: "2",
             placeName: "The Bombay Canteen",
-            address: "Lower Parel, Mumbai",
-            latitude: nil,
-            longitude: nil
+            address: "Lower Parel, Mumbai"
         ))
     }
     .padding()
