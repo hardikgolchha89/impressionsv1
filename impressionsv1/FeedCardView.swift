@@ -31,9 +31,6 @@ struct FeedCardView: View {
     @Environment(RecommendationStore.self) private var store
     @Environment(HotlistStore.self) private var hotlist
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.modelContext) private var modelContext
 
     private var isOwnImpression: Bool {
         impression.author.id == userManager.currentUser?.id

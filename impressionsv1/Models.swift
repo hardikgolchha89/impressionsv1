@@ -97,7 +97,9 @@ struct Impression: Identifiable {
     let cardColor: ImpressionCardColor
     let previewWidgets: [Widget]  // First 2 widgets to show in feed card
     let allWidgets: [Widget]      // All widgets for detail view
-    
+    var creditCount: Int
+    var coverPhotoPath: String?
+
     init(
         id: String = UUID().uuidString,
         author: Author,
@@ -109,7 +111,9 @@ struct Impression: Identifiable {
         priceRange: String? = nil,
         cardColor: ImpressionCardColor,
         previewWidgets: [Widget],
-        allWidgets: [Widget]
+        allWidgets: [Widget],
+        creditCount: Int = 0,
+        coverPhotoPath: String? = nil
     ) {
         self.id = id
         self.author = author
@@ -122,6 +126,8 @@ struct Impression: Identifiable {
         self.cardColor = cardColor
         self.previewWidgets = previewWidgets
         self.allWidgets = allWidgets
+        self.creditCount = creditCount
+        self.coverPhotoPath = coverPhotoPath
     }
 }
 
@@ -367,6 +373,7 @@ final class ImpressionModel {
     var occasion: String
     var priceRange: String?
     var cardColorRawValue: String // "pink" or "blue"
+    var creditCount: Int
 
     @Relationship(deleteRule: .nullify)
     var author: AuthorModel?
@@ -401,7 +408,8 @@ final class ImpressionModel {
         occasion: String,
         priceRange: String? = nil,
         cardColorRawValue: String = "pink",
-        author: AuthorModel? = nil
+        author: AuthorModel? = nil,
+        creditCount: Int = 0
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -412,6 +420,7 @@ final class ImpressionModel {
         self.priceRange = priceRange
         self.cardColorRawValue = cardColorRawValue
         self.author = author
+        self.creditCount = creditCount
         self.photoWidgets = []
         self.quoteWidgets = []
         self.infoWidgets = []
