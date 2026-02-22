@@ -42,7 +42,7 @@ struct OrderListWidget: View {
         VStack(alignment: .leading, spacing: 0) {
             // Title
             Text(title)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.custom("Caveat-Bold", size: 22))
                 .foregroundColor(.white)
                 .padding(.bottom, Spacing.lg)
             

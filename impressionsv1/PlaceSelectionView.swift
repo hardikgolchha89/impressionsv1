@@ -192,14 +192,30 @@ private struct PlaceRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 14) {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isSelected ? Color.appOlive.opacity(0.15) : Color.appGreige.opacity(0.35))
-                    .frame(width: 40, height: 40)
-                    .overlay(
+                Group {
+                    if let photoURL = place.photoURL {
+                        AsyncImage(url: photoURL) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            default:
+                                Image(systemName: "fork.knife")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(isSelected ? .appOlive : .appBrown.opacity(0.4))
+                            }
+                        }
+                    } else {
                         Image(systemName: "fork.knife")
                             .font(.system(size: 15))
                             .foregroundColor(isSelected ? .appOlive : .appBrown.opacity(0.4))
-                    )
+                    }
+                }
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(isSelected ? Color.appOlive.opacity(0.15) : Color.appGreige.opacity(0.35))
+                )
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(place.name)

@@ -28,7 +28,7 @@ struct PhotoWidget: View {
         ZStack(alignment: .bottomLeading) {
             // Photo or Placeholder — fills the grid cell
             if let imageUrl = photo.imageUrl, !imageUrl.isEmpty,
-               let uiImage = UIImage(contentsOfFile: imageUrl) {
+               let uiImage = UIImage(named: imageUrl) ?? UIImage(contentsOfFile: imageUrl) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
