@@ -61,6 +61,17 @@ struct impressionsv1App: App {
                 .environment(hotlistStore)
                 .onAppear {
                     userManager.loadExistingUser(context: sharedModelContainer.mainContext)
+                    #if DEBUG
+                    // Verify custom fonts are registered
+                    let fontCheck = ["HKGrotesk-Bold", "HKGrotesk-Regular", "Caveat-Bold"]
+                    for name in fontCheck {
+                        if UIFont(name: name, size: 12) != nil {
+                            print("✅ Font loaded: \(name)")
+                        } else {
+                            print("❌ Font MISSING: \(name)")
+                        }
+                    }
+                    #endif
                 }
         }
         .modelContainer(sharedModelContainer)
