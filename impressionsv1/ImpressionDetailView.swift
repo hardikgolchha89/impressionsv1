@@ -115,6 +115,24 @@ struct ImpressionDetailView: View {
         impression.creditCount + (hasCredited ? 1 : 0)
     }
 
+    /// Resolve cover image: explicit cover path → first photo widget → nil
+    private func resolveCoverImage() -> UIImage? {
+        if let coverPath = impression.coverPhotoPath, !coverPath.isEmpty {
+            if let img = UIImage(named: coverPath) ?? UIImage(contentsOfFile: coverPath) {
+                return img
+            }
+        }
+        // Fallback: use the first photo widget's image
+        for w in impression.widgets {
+            if case .photo(let p) = w.type, let url = p.imageUrl, !url.isEmpty {
+                if let img = UIImage(named: url) ?? UIImage(contentsOfFile: url) {
+                    return img
+                }
+            }
+        }
+        return nil
+    }
+
     // Separate order widgets from prompt/impression widgets
     private var orderWidgets: [Widget] {
         impression.widgets.filter {
@@ -170,10 +188,8 @@ struct ImpressionDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Cover image or gradient placeholder
             ZStack(alignment: .bottomLeading) {
-                if let coverPath = impression.coverPhotoPath,
-                   !coverPath.isEmpty,
-                   let uiImage = UIImage(contentsOfFile: coverPath) {
-                    Image(uiImage: uiImage)
+                if let coverImage = resolveCoverImage() {
+                    Image(uiImage: coverImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(maxWidth: .infinity)
@@ -409,32 +425,51 @@ struct ImpressionDetailView: View {
 
     @ViewBuilder
     private func detailWidgetCard(widget: Widget, color: Color) -> some View {
-        let (title, body) = widgetContent(widget)
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title.uppercased())
-                .font(.custom("HKGrotesk-SemiBold", size: 9))
-                .foregroundColor(.white.opacity(0.7))
-                .kerning(0.5)
-                .lineLimit(2)
+        if case .photo(let p) = widget.type,
+           let imageUrl = p.imageUrl, !imageUrl.isEmpty,
+           let uiImage = UIImage(named: imageUrl) ?? UIImage(contentsOfFile: imageUrl) {
+            // Photo card — actual image
+            ZStack(alignment: .bottomLeading) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, minHeight: 120)
+                    .clipped()
 
-            Text(body)
-                .font(.custom("HKGrotesk-Regular", size: 14))
-                .foregroundColor(.white)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-
-            // Photo caption if applicable
-            if case .photo(let p) = widget.type, let cap = p.caption, !cap.isEmpty {
-                Text(cap)
-                    .font(.custom("HKGrotesk-Light", size: 11))
-                    .foregroundColor(.white.opacity(0.7))
-                    .italic()
+                if let cap = p.caption, !cap.isEmpty {
+                    Text(cap)
+                        .font(.custom("HKGrotesk-Medium", size: 11))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.black.opacity(0.45))
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .padding(8)
+                }
             }
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else {
+            // Text-based card (quote, info, map, etc.)
+            let (title, body) = widgetContent(widget)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title.uppercased())
+                    .font(.custom("HKGrotesk-SemiBold", size: 9))
+                    .foregroundColor(.white.opacity(0.7))
+                    .kerning(0.5)
+                    .lineLimit(2)
+
+                Text(body)
+                    .font(.custom("HKGrotesk-Regular", size: 14))
+                    .foregroundColor(.white)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(color)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(color)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func widgetContent(_ widget: Widget) -> (title: String, body: String) {
